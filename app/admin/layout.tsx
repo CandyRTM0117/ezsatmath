@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import Sidebar from '@/components/ui/Sidebar'
+import AppShell from '@/components/ui/AppShell'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -16,9 +16,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== 'admin') redirect('/student/dashboard')
 
   return (
-    <div className="flex">
-      <Sidebar role="admin" userName={profile?.name ?? user.email ?? ''} />
-      <main className="flex-1 min-h-screen bg-slate-50 p-8">{children}</main>
-    </div>
+    <AppShell role="admin" userName={profile?.name ?? user.email ?? ''}>
+      {children}
+    </AppShell>
   )
 }

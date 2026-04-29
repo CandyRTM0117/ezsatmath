@@ -68,15 +68,15 @@ export default function SignupPage() {
 
           <form onSubmit={handleSignup} className="space-y-4">
             {[
-              { label: 'Full name',        type: 'text',     value: name,     set: setName,     ph: 'Jane Smith' },
-              { label: 'Email',            type: 'email',    value: email,    set: setEmail,    ph: 'you@example.com' },
-              { label: 'Password',         type: 'password', value: password, set: setPassword, ph: 'Min. 6 characters' },
-              { label: 'Confirm password', type: 'password', value: confirm,  set: setConfirm,  ph: '••••••••' },
+              { label: 'Full name',        type: 'text',     value: name,     set: setName,     ph: 'Jane Smith',          ac: 'name' },
+              { label: 'Email',            type: 'email',    value: email,    set: setEmail,    ph: 'you@example.com',     ac: 'email' },
+              { label: 'Password',         type: 'password', value: password, set: setPassword, ph: 'Min. 6 characters', ac: 'new-password' },
+              { label: 'Confirm password', type: 'password', value: confirm,  set: setConfirm,  ph: '••••••••',           ac: 'new-password' },
             ].map(f => (
               <div key={f.label}>
                 <label className="block text-sm font-semibold text-slate-300 mb-1.5">{f.label}</label>
                 <input
-                  type={f.type} required value={f.value}
+                  type={f.type} autoComplete={f.ac} required value={f.value}
                   onChange={e => f.set(e.target.value)}
                   className={inputClass} style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = '#3B82F6')}
