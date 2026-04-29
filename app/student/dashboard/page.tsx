@@ -1,113 +1,148 @@
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
+
+const STAT_CONFIG = [
+  { key: 'solvedToday',    label: 'Solved Today',      icon: '⚡', from: '#3B82F6', to: '#1D4ED8' },
+  { key: 'totalAttempts',  label: 'Total Problems',     icon: '📝', from: '#8B5CF6', to: '#6D28D9' },
+  { key: 'accuracy',       label: 'Accuracy',           icon: '🎯', from: '#10B981', to: '#059669' },
+  { key: 'examsCount',     label: 'Exams Taken',        icon: '📋', from: '#F59E0B', to: '#D97706' },
+]
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single()
 
   const today = new Date().toISOString().split('T')[0]
-  const { count: solvedToday } = await supabase
-    .from('problem_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('attempted_at', today)
 
-  const { count: totalAttempts } = await supabase
-    .from('problem_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-
-  const { count: correctAttempts } = await supabase
-    .from('problem_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('is_correct', true)
-
-  const { data: exams } = await supabase
-    .from('exams')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('taken_at', { ascending: false })
-    .limit(5)
+  const [
+    { count: solvedToday },
+    { count: totalAttempts },
+    { count: correctAttempts },
+    { data: exams },
+  ] = await Promise.all([
+    supabase.from('problem_attempts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('attempted_at', today),
+    supabase.from('problem_attempts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('problem_attempts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_correct', true),
+    supabase.from('exams').select('*').eq('user_id', user.id).order('taken_at', { ascending: false }).limit(5),
+  ])
 
   const accuracy = totalAttempts ? Math.round((correctAttempts ?? 0) / totalAttempts * 100) : 0
 
-  const stats = [
-    { label: 'Solved Today', value: solvedToday ?? 0, color: 'bg-blue-50 text-blue-700' },
-    { label: 'Total Problems', value: totalAttempts ?? 0, color: 'bg-purple-50 text-purple-700' },
-    { label: 'Problem Accuracy', value: `${accuracy}%`, color: 'bg-green-50 text-green-700' },
-    { label: 'Exams Taken', value: exams?.length ?? 0, color: 'bg-orange-50 text-orange-700' },
-  ]
+  const statValues: Record<string, string | number> = {
+    solvedToday: solvedToday ?? 0,
+    totalAttempts: totalAttempts ?? 0,
+    accuracy: `${accuracy}%`,
+    examsCount: exams?.length ?? 0,
+  }
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back, {profile?.name ?? 'Student'}!</h1>
-        <p className="text-slate-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      {/* Page header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          Welcome back, {profile?.name ?? 'Student'} 👋
+        </h1>
+        <p className="text-slate-500 mt-1.5">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-5">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{s.label}</p>
-            <p className={`text-3xl font-bold mt-1 ${s.color.split(' ')[1]}`}>{s.value}</p>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {STAT_CONFIG.map(s => (
+          <div key={s.key} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:-translate-y-1 transition-transform duration-200">
+            <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${s.from}, ${s.to})` }} />
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                <span className="text-2xl">{s.icon}</span>
+              </div>
+              <p className="text-4xl font-extrabold tracking-tight" style={{ color: s.from }}>
+                {statValues[s.key]}
+              </p>
+            </div>
           </div>
         ))}
       </div>
 
+      {/* Bottom cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="font-semibold text-slate-900 mb-4">Recent Exams</h2>
+        {/* Recent exams */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-extrabold text-slate-900 text-lg">Recent Exams</h2>
+            <Link href="/student/exam" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
+              Take exam →
+            </Link>
+          </div>
           {exams && exams.length > 0 ? (
-            <div className="space-y-2">
-              {exams.map(e => (
-                <div key={e.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                  <div>
-                    <span className="text-sm font-medium text-slate-800">Part {e.part}</span>
-                    <span className="text-xs text-slate-400 ml-2">{new Date(e.taken_at).toLocaleDateString()}</span>
+            <div className="space-y-3">
+              {exams.map(e => {
+                const pct = Math.round(e.score / e.total * 100)
+                return (
+                  <div key={e.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
+                    <div>
+                      <span className="text-sm font-semibold text-slate-800">Part {e.part}</span>
+                      <span className="text-xs text-slate-400 ml-2">{new Date(e.taken_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-20 bg-slate-100 rounded-full h-1.5">
+                        <div
+                          className="h-1.5 rounded-full transition-all"
+                          style={{ width: `${pct}%`, background: pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444' }}
+                        />
+                      </div>
+                      <span className={`text-sm font-bold w-12 text-right ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {e.score}/{e.total}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`text-sm font-semibold ${e.score / e.total >= 0.8 ? 'text-green-600' : e.score / e.total >= 0.5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {e.score}/{e.total}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">No exams taken yet. <a href="/student/exam" className="text-blue-600 hover:underline">Take your first exam →</a></p>
+            <div className="text-center py-8">
+              <p className="text-slate-400 text-sm mb-3">No exams taken yet.</p>
+              <Link
+                href="/student/exam"
+                className="inline-block px-5 py-2.5 text-sm font-bold text-white rounded-full transition-all hover:scale-105"
+                style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
+              >
+                Take your first exam →
+              </Link>
+            </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="font-semibold text-slate-900 mb-4">Account Info</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex gap-2">
-              <span className="text-slate-500 w-20">Name</span>
-              <span className="text-slate-900 font-medium">{profile?.name ?? '—'}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-slate-500 w-20">Email</span>
-              <span className="text-slate-900">{profile?.email}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-slate-500 w-20">Joined</span>
-              <span className="text-slate-900">{new Date(profile?.created_at).toLocaleDateString()}</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-slate-500 w-20">Plan</span>
+        {/* Account info */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <h2 className="font-extrabold text-slate-900 text-lg mb-5">Account Info</h2>
+          <div className="space-y-4">
+            {[
+              { label: 'Name', value: profile?.name ?? '—' },
+              { label: 'Email', value: profile?.email ?? '—' },
+              { label: 'Joined', value: new Date(profile?.created_at).toLocaleDateString() },
+            ].map(row => (
+              <div key={row.label} className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest w-14 shrink-0">{row.label}</span>
+                <span className="text-sm font-medium text-slate-800 truncate">{row.value}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest w-14 shrink-0">Plan</span>
               {profile?.is_subscribed ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                  Pro
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full text-blue-700"
+                  style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)' }}>
+                  ✦ Pro
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
-                  Free
-                </span>
+                <Link href="/student/subscription"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                  Free · Upgrade →
+                </Link>
               )}
             </div>
           </div>

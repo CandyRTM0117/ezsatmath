@@ -74,14 +74,18 @@ export default function ProblemsClient({
 
   return (
     <div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Problems</h1>
+        <p className="text-slate-500 mt-1.5">{displayed.length} of {problems.length} shown</p>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 flex-1">Problems</h1>
         <input
           type="text"
           placeholder="Search problems…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm w-full sm:w-52"
+          className="flex-1 px-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 transition-colors bg-white min-h-[44px]"
         />
         <Dropdown
           value={filterCategory}
@@ -203,7 +207,7 @@ export default function ProblemsClient({
             <button
               key={p.id}
               onClick={() => openProblem(p)}
-              className="text-left bg-white rounded-2xl border border-slate-200 p-6 hover:border-blue-400 hover:shadow-md transition-all"
+              className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-6 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 transition-all duration-200"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex gap-2 flex-wrap">
