@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Plus, X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
 import type { Problem, Choice, ProblemCategory } from '@/types'
@@ -25,6 +26,18 @@ const EMPTY_FORM = {
     { label: 'D', choice_text: '', is_correct: false },
   ],
 }
+
+const inputStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#E2E8F0',
+}
+
+const diffStyle = (d: string): React.CSSProperties => ({
+  easy:   { background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)' },
+  medium: { background: 'rgba(245,158,11,0.12)', color: '#FBBF24', border: '1px solid rgba(245,158,11,0.25)' },
+  hard:   { background: 'rgba(239,68,68,0.12)',  color: '#F87171', border: '1px solid rgba(239,68,68,0.25)' },
+}[d] ?? {})
 
 export default function ProblemsClient({ initialProblems }: { initialProblems: ProblemWithChoices[] }) {
   const [problems, setProblems] = useState<ProblemWithChoices[]>(initialProblems)
@@ -158,16 +171,19 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
 
   const displayed = filterDiff === 'all' ? problems : problems.filter(p => p.difficulty === filterDiff)
 
-  const diffColor = (d: string) => ({
-    easy: 'bg-green-100 text-green-700',
-    medium: 'bg-yellow-100 text-yellow-700',
-    hard: 'bg-red-100 text-red-700',
-  }[d] ?? '')
+  const inputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.target.style.borderColor = 'rgba(59,130,246,0.5)'
+  }
+  const inputBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Problems</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+          Problems
+        </h1>
         <div className="flex items-center gap-3">
           <Dropdown
             value={filterDiff}
@@ -179,30 +195,53 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
               { value: 'hard', label: 'Hard' },
             ]}
           />
-          <button onClick={openAdd} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg">
-            + Add Problem
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-full transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 24px rgba(59,130,246,0.35)' }}
+          >
+            <Plus size={14} strokeWidth={2.5} /> Add Problem
           </button>
         </div>
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 overflow-y-auto py-8">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 mx-4">
-            <h2 className="text-lg font-semibold mb-4">{editProblem ? 'Edit Problem' : 'Add Problem'}</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto py-8 px-4 fade-in" onClick={() => setShowForm(false)}>
+          <div
+            className="rounded-2xl w-full max-w-2xl p-7 zoom-in-95"
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#0F172A',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-extrabold text-white tracking-tight">{editProblem ? 'Edit Problem' : 'Add Problem'}</h2>
+              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
+                <X size={18} strokeWidth={1.75} />
+              </button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-3">
               <input
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+                style={inputStyle}
                 placeholder="Title (optional)"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                onFocus={inputFocus}
+                onBlur={inputBlur}
               />
               <textarea
                 required
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none focus:outline-none transition-all"
+                style={inputStyle}
                 placeholder="Question *"
                 value={form.question}
                 onChange={e => setForm(f => ({ ...f, question: e.target.value }))}
+                onFocus={inputFocus}
+                onBlur={inputBlur}
               />
               <div className="grid grid-cols-2 gap-3">
                 <Dropdown
@@ -212,6 +251,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                     { value: 'mc', label: 'Multiple Choice' },
                     { value: 'input', label: 'Input' },
                   ]}
+                  className="w-full"
                 />
                 <Dropdown
                   value={form.difficulty}
@@ -221,6 +261,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                     { value: 'medium', label: 'Medium' },
                     { value: 'hard', label: 'Hard' },
                   ]}
+                  className="w-full"
                 />
                 <Dropdown
                   value={form.category}
@@ -229,18 +270,22 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                     { value: '', label: 'No category' },
                     ...CATEGORIES.map(c => ({ value: c, label: c })),
                   ]}
+                  className="w-full"
                 />
                 <input
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                  className="px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+                  style={inputStyle}
                   placeholder="Topic"
                   value={form.topic}
                   onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
                 />
               </div>
 
               {form.type === 'mc' && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-600">Choices (check the correct one)</p>
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Choices (check the correct one)</p>
                   {form.choices.map((c, i) => (
                     <div key={c.label} className="flex items-center gap-2">
                       <input
@@ -248,14 +293,17 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                         name="correct"
                         checked={c.is_correct}
                         onChange={() => setForm(f => ({ ...f, choices: f.choices.map((ch, j) => ({ ...ch, is_correct: j === i })) }))}
-                        className="accent-blue-600"
+                        className="accent-blue-500"
                       />
-                      <span className="text-sm font-medium text-slate-700 w-4">{c.label}</span>
+                      <span className="text-sm font-bold text-slate-400 w-4">{c.label}</span>
                       <input
-                        className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm"
+                        className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none transition-all"
+                        style={inputStyle}
                         placeholder={`Choice ${c.label}`}
                         value={c.choice_text}
                         onChange={e => setForm(f => ({ ...f, choices: f.choices.map((ch, j) => j === i ? { ...ch, choice_text: e.target.value } : ch) }))}
+                        onFocus={inputFocus}
+                        onBlur={inputBlur}
                       />
                     </div>
                   ))}
@@ -264,27 +312,43 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
 
               <input
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+                style={inputStyle}
                 placeholder="Solution (correct answer) *"
                 value={form.solution}
                 onChange={e => setForm(f => ({ ...f, solution: e.target.value }))}
+                onFocus={inputFocus}
+                onBlur={inputBlur}
               />
               <textarea
                 rows={2}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none focus:outline-none transition-all"
+                style={inputStyle}
                 placeholder="Explanation (shown after wrong answer)"
                 value={form.explanation}
                 onChange={e => setForm(f => ({ ...f, explanation: e.target.value }))}
+                onFocus={inputFocus}
+                onBlur={inputBlur}
               />
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <div className="flex gap-2 pt-1">
-                <button type="submit" disabled={loading}
-                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">
-                  {loading ? 'Saving…' : 'Save'}
+              {error && <p className="text-sm font-semibold text-red-400">{error}</p>}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 py-2.5 font-bold text-white rounded-full text-sm transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
+                  style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 20px rgba(59,130,246,0.35)' }}
+                >
+                  {loading ? (<span className="inline-flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin" /> Saving…</span>) : 'Save'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 py-2.5 rounded-full text-sm font-semibold text-slate-200 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                >
                   Cancel
                 </button>
               </div>
@@ -293,41 +357,47 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div
+        className="rounded-2xl border border-white/10 overflow-hidden"
+        style={{
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+        }}
+      >
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Question</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Difficulty</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Topic</th>
-              <th className="px-4 py-3"></th>
+              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Question</th>
+              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Type</th>
+              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Difficulty</th>
+              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Category</th>
+              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Topic</th>
+              <th className="px-5 py-4"></th>
             </tr>
           </thead>
           <tbody>
             {displayed.map(p => (
-              <tr key={p.id} className="border-b border-slate-100 last:border-0">
-                <td className="px-4 py-3 max-w-sm">
-                  {p.title && <p className="font-medium text-slate-900">{p.title}</p>}
-                  <p className="text-slate-500 truncate">{p.question}</p>
+              <tr key={p.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.02]">
+                <td className="px-5 py-4 max-w-sm">
+                  {p.title && <p className="font-semibold text-white">{p.title}</p>}
+                  <p className="text-slate-400 truncate">{p.question}</p>
                 </td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium uppercase">{p.type}</span>
+                <td className="px-5 py-4">
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest" style={{ background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.08)' }}>{p.type}</span>
                 </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${diffColor(p.difficulty)}`}>{p.difficulty}</span>
+                <td className="px-5 py-4">
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold capitalize" style={diffStyle(p.difficulty)}>{p.difficulty}</span>
                 </td>
-                <td className="px-4 py-3 text-slate-500">{p.category ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-500">{p.topic ?? '—'}</td>
-                <td className="px-4 py-3 flex gap-2 justify-end">
-                  <button onClick={() => openEdit(p)} className="text-blue-600 hover:underline text-xs">Edit</button>
-                  <button onClick={() => handleDelete(p)} className="text-red-500 hover:underline text-xs">Delete</button>
+                <td className="px-5 py-4 text-slate-400">{p.category ?? '—'}</td>
+                <td className="px-5 py-4 text-slate-400">{p.topic ?? '—'}</td>
+                <td className="px-5 py-4 flex gap-3 justify-end">
+                  <button onClick={() => openEdit(p)} className="text-blue-400 hover:text-blue-300 text-xs font-semibold transition-colors">Edit</button>
+                  <button onClick={() => handleDelete(p)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Delete</button>
                 </td>
               </tr>
             ))}
             {displayed.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No problems yet</td></tr>
+              <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">No problems yet</td></tr>
             )}
           </tbody>
         </table>

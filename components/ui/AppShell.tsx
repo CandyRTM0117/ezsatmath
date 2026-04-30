@@ -1,5 +1,6 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 
 interface AppShellProps {
@@ -9,16 +10,27 @@ interface AppShellProps {
 }
 
 export default function AppShell({ role, userName, children }: AppShellProps) {
+  const pathname = usePathname()
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#0B1224' }}>
       <Sidebar role={role} userName={userName} />
 
-      {/*
-        pt-16 on mobile so content clears the fixed hamburger button (top-4 + h-10 = ~56px).
-        md:pt-0 resets once the sidebar is in-flow and there's no fixed button.
-      */}
-      <main className="flex-1 overflow-y-auto bg-slate-50 px-4 pt-16 pb-4 md:p-6 lg:p-10">
-        {children}
+      <main className="relative flex-1 overflow-y-auto pt-16 px-4 pb-8 md:p-8 lg:p-12"
+        style={{ background: '#0B1224' }}>
+        {/* Ambient background orbs for depth */}
+        <div
+          className="pointer-events-none absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full opacity-30"
+          style={{ background: 'radial-gradient(closest-side, rgba(59,130,246,0.18), transparent)', filter: 'blur(60px)' }}
+        />
+        <div
+          className="pointer-events-none absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,0.18), transparent)', filter: 'blur(80px)' }}
+        />
+
+        <div key={pathname} className="relative max-w-7xl mx-auto fade-in-up">
+          {children}
+        </div>
       </main>
     </div>
   )

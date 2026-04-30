@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Problem, Choice } from '@/types'
 
@@ -40,10 +41,10 @@ function correctAnswerFor(p: ProblemWithChoices): string {
   return p.solution
 }
 
-const diffStyle = (d: string) => ({
-  easy:   { background: 'rgba(16,185,129,0.12)', color: '#059669' },
-  medium: { background: 'rgba(245,158,11,0.12)', color: '#D97706' },
-  hard:   { background: 'rgba(239,68,68,0.12)',  color: '#DC2626' },
+const diffStyle = (d: string): React.CSSProperties => ({
+  easy:   { background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)' },
+  medium: { background: 'rgba(245,158,11,0.12)', color: '#FBBF24', border: '1px solid rgba(245,158,11,0.25)' },
+  hard:   { background: 'rgba(239,68,68,0.12)',  color: '#F87171', border: '1px solid rgba(239,68,68,0.25)' },
 }[d] ?? {})
 
 export default function ExamClient({ problems, userId }: ExamClientProps) {
@@ -111,38 +112,46 @@ export default function ExamClient({ problems, userId }: ExamClientProps) {
     return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
   }
 
-  /* ── Idle ── */
+  /* Idle */
   if (state === 'idle') {
     return (
       <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Exam</h1>
-          <p className="text-slate-500 mt-1.5">Full-length SAT practice exam</p>
+        <div className="mb-10">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+            Exam
+          </h1>
+          <p className="text-slate-400 mt-2 text-lg">Full-length SAT practice exam</p>
         </div>
 
         <div className="max-w-lg">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #3B82F6, #6366F1)' }} />
+          <div
+            className="rounded-2xl border border-white/10 overflow-hidden"
+            style={{
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.35), 0 0 60px rgba(59,130,246,0.08)',
+            }}
+          >
+            <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #60A5FA, #6366F1)' }} />
             <div className="p-8">
-              <h2 className="text-xl font-extrabold text-slate-900 mb-2">SAT Math Practice</h2>
-              <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
-                <span className="flex items-center gap-1.5">📝 {problems.length} questions</span>
-                <span className="flex items-center gap-1.5">⏱ 44 minutes</span>
+              <h2 className="text-2xl font-extrabold text-white mb-3 tracking-tight">SAT Math Practice</h2>
+              <div className="flex items-center gap-5 text-sm text-slate-400 mb-7">
+                <span className="inline-flex items-center gap-2"><FileText size={16} strokeWidth={1.75} className="text-blue-400" /> {problems.length} questions</span>
+                <span className="inline-flex items-center gap-2"><Timer size={16} strokeWidth={1.75} className="text-blue-400" /> 44 minutes</span>
               </div>
               <div className="grid grid-cols-3 gap-3 mb-8">
                 {['Easy', 'Medium', 'Hard'].map(d => (
                   <div key={d} className="rounded-xl p-3 text-center" style={diffStyle(d.toLowerCase())}>
-                    <p className="text-xs font-bold uppercase tracking-wider">{d}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest">{d}</p>
                   </div>
                 ))}
               </div>
               <button
                 onClick={startExam}
                 disabled={problems.length === 0}
-                className="w-full py-4 font-bold text-white rounded-full transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-base"
-                style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 20px rgba(59,130,246,0.35)' }}
+                className="w-full inline-flex items-center justify-center gap-2 py-4 font-bold text-white rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 text-base"
+                style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 12px 30px rgba(59,130,246,0.4)' }}
               >
-                {problems.length === 0 ? 'No questions available' : 'Start Exam →'}
+                {problems.length === 0 ? 'No questions available' : (<>Start Exam <ArrowRight size={16} strokeWidth={2.5} /></>)}
               </button>
             </div>
           </div>
@@ -151,75 +160,98 @@ export default function ExamClient({ problems, userId }: ExamClientProps) {
     )
   }
 
-  /* ── Results ── */
+  /* Results */
   if (state === 'submitted' && result) {
     const m = Math.floor(result.duration_s / 60)
     const s = result.duration_s % 60
-    const satColor = result.satScore >= 650 ? '#10B981' : result.satScore >= 450 ? '#F59E0B' : '#EF4444'
+    const satColor = result.satScore >= 650 ? '#34D399' : result.satScore >= 450 ? '#FBBF24' : '#F87171'
 
     return (
       <div className="max-w-2xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Exam Results</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+            Exam Results
+          </h1>
         </div>
 
-        {/* Score card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-          <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${satColor}, ${satColor}88)` }} />
-          <div className="p-8 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">SAT Score</p>
-            <div className="text-7xl font-extrabold mb-2 tracking-tight" style={{ color: satColor }}>{result.satScore}</div>
-            <p className="text-slate-400 text-sm mb-5">out of 800</p>
+        <div
+          className="rounded-2xl border border-white/10 overflow-hidden mb-6"
+          style={{
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${satColor}, ${satColor}55)` }} />
+          <div className="p-10 text-center">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">SAT Score</p>
+            <div
+              className="text-8xl font-extrabold mb-2 tracking-tight"
+              style={{
+                background: `linear-gradient(135deg, ${satColor}, ${satColor}aa)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: `drop-shadow(0 0 24px ${satColor}55)`,
+              }}
+            >
+              {result.satScore}
+            </div>
+            <p className="text-slate-500 text-sm mb-6">out of 800</p>
             <div className="flex items-center justify-center gap-6 text-sm">
               <div className="text-center">
-                <p className="font-extrabold text-slate-900 text-lg">{result.score}/{result.total}</p>
-                <p className="text-slate-400 text-xs mt-0.5">Correct</p>
+                <p className="font-extrabold text-white text-xl">{result.score}/{result.total}</p>
+                <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Correct</p>
               </div>
-              <div className="w-px h-8 bg-slate-200" />
+              <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
-                <p className="font-extrabold text-slate-900 text-lg">{m}m {s}s</p>
-                <p className="text-slate-400 text-xs mt-0.5">Duration</p>
+                <p className="font-extrabold text-white text-xl">{m}m {s}s</p>
+                <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Duration</p>
               </div>
-              <div className="w-px h-8 bg-slate-200" />
+              <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
-                <p className="font-extrabold text-slate-900 text-lg">{Math.round(result.score / result.total * 100)}%</p>
-                <p className="text-slate-400 text-xs mt-0.5">Accuracy</p>
+                <p className="font-extrabold text-white text-xl">{Math.round(result.score / result.total * 100)}%</p>
+                <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Accuracy</p>
               </div>
             </div>
             <button
               onClick={() => { setState('idle'); setResult(null) }}
-              className="mt-7 px-7 py-3 font-bold text-white rounded-full text-sm transition-all hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
+              className="mt-8 px-8 py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 24px rgba(59,130,246,0.35)' }}
             >
               Take Another Exam
             </button>
           </div>
         </div>
 
-        {/* Breakdown */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="font-extrabold text-slate-900">Question Breakdown</h2>
+        <div
+          className="rounded-2xl border border-white/10 overflow-hidden"
+          style={{
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+          }}
+        >
+          <div className="px-7 py-5 border-b border-white/8">
+            <h2 className="font-extrabold text-white tracking-tight">Question Breakdown</h2>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/5">
             {result.breakdown.map((item, i) => (
-              <div key={i} className="px-6 py-4 flex items-start gap-4">
+              <div key={i} className="px-7 py-4 flex items-start gap-4">
                 <span
-                  className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                   style={item.isCorrect
-                    ? { background: 'rgba(16,185,129,0.12)', color: '#059669' }
-                    : { background: 'rgba(239,68,68,0.12)', color: '#DC2626' }}
+                    ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)' }
+                    : { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }}
                 >
-                  {item.isCorrect ? '✓' : '✗'}
+                  {item.isCorrect ? <Check size={14} strokeWidth={2.5} /> : <X size={14} strokeWidth={2.5} />}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-800 line-clamp-2 mb-1.5">{item.problem.question}</p>
+                  <p className="text-sm text-slate-200 line-clamp-2 mb-1.5">{item.problem.question}</p>
                   <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                    <span>Your answer: <span className={`font-semibold ${item.isCorrect ? 'text-green-700' : 'text-red-600'}`}>{item.userAnswer || '—'}</span></span>
-                    {!item.isCorrect && <span>Correct: <span className="font-semibold text-slate-700">{item.correctAnswer}</span></span>}
+                    <span>Your answer: <span className={`font-semibold ${item.isCorrect ? 'text-green-400' : 'text-red-400'}`}>{item.userAnswer || '—'}</span></span>
+                    {!item.isCorrect && <span>Correct: <span className="font-semibold text-slate-300">{item.correctAnswer}</span></span>}
                   </div>
                 </div>
-                <span className="text-xs px-2.5 py-1 rounded-full font-semibold capitalize flex-shrink-0" style={diffStyle(item.problem.difficulty)}>
+                <span className="text-[11px] px-2.5 py-1 rounded-full font-bold capitalize flex-shrink-0" style={diffStyle(item.problem.difficulty)}>
                   {item.problem.difficulty}
                 </span>
               </div>
@@ -230,82 +262,91 @@ export default function ExamClient({ problems, userId }: ExamClientProps) {
     )
   }
 
-  /* ── Active exam ── */
+  /* Active exam */
   const problem = problems[current]
   const urgentTime = timeLeft <= 120
   const answeredCount = Object.keys(answers).length
 
   return (
-    <div className="max-w-2xl">
-      {/* Header */}
+    <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">SAT Practice Exam</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{answeredCount} of {problems.length} answered</p>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">SAT Practice Exam</h1>
+          <p className="text-sm text-slate-400 mt-0.5">{answeredCount} of {problems.length} answered</p>
         </div>
-        {/* Timer badge */}
         <div
           className="flex items-center gap-2 px-4 py-2 rounded-full font-mono font-extrabold text-lg tabular-nums transition-all"
           style={urgentTime
-            ? { background: 'rgba(239,68,68,0.1)', color: '#DC2626', border: '2px solid rgba(239,68,68,0.4)' }
-            : { background: 'rgba(59,130,246,0.1)', color: '#2563EB', border: '2px solid rgba(59,130,246,0.25)' }}
+            ? { background: 'rgba(239,68,68,0.12)', color: '#F87171', border: '1px solid rgba(239,68,68,0.4)', boxShadow: '0 0 24px rgba(239,68,68,0.25)' }
+            : { background: 'rgba(59,130,246,0.12)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.3)' }}
         >
-          {urgentTime && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+          {urgentTime && <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />}
           {fmtTime(timeLeft)}
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-slate-200 rounded-full h-2 mb-6">
+      <div className="w-full bg-white/5 rounded-full h-2 mb-6 overflow-hidden">
         <div
           className="h-2 rounded-full transition-all duration-500"
-          style={{ width: `${((current + 1) / problems.length) * 100}%`, background: 'linear-gradient(90deg, #3B82F6, #6366F1)' }}
+          style={{
+            width: `${((current + 1) / problems.length) * 100}%`,
+            background: 'linear-gradient(90deg, #60A5FA, #6366F1)',
+            boxShadow: '0 0 12px rgba(96,165,250,0.6)',
+          }}
         />
       </div>
 
-      {/* Question card */}
       {problem && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 md:p-8 mb-5">
+        <div
+          className="rounded-2xl border border-white/10 p-7 md:p-9 mb-5"
+          style={{
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+          }}
+        >
           <div className="flex items-center gap-2.5 mb-5">
-            <span className="text-sm font-bold text-slate-400">Q{current + 1}</span>
-            <span className="text-xs px-2.5 py-1 rounded-full font-semibold capitalize" style={diffStyle(problem.difficulty)}>
+            <span className="text-sm font-bold text-slate-500">Q{current + 1}</span>
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-bold capitalize" style={diffStyle(problem.difficulty)}>
               {problem.difficulty}
             </span>
             {problem.category && (
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-                style={{ background: 'rgba(59,130,246,0.1)', color: '#2563EB' }}>
+              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold"
+                style={{ background: 'rgba(59,130,246,0.1)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.2)' }}>
                 {problem.category}
               </span>
             )}
           </div>
 
-          <p className="text-slate-900 text-base md:text-lg leading-relaxed mb-6 whitespace-pre-wrap font-medium">{problem.question}</p>
+          <p className="text-slate-100 text-base md:text-lg leading-relaxed mb-7 whitespace-pre-wrap font-medium">{problem.question}</p>
 
           {problem.type === 'mc' ? (
             <div className="space-y-3">
-              {(problem.choices ?? []).sort((a, b) => a.order_index - b.order_index).map(c => (
-                <label
-                  key={c.id}
-                  className="flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all"
-                  style={answers[current] === c.label
-                    ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.07)' }
-                    : { borderColor: '#E2E8F0' }}
-                >
-                  <input type="radio" name={`q${current}`} value={c.label}
-                    checked={answers[current] === c.label}
-                    onChange={() => setAnswers(a => ({ ...a, [current]: c.label }))}
-                    className="accent-blue-600 mt-0.5 shrink-0" />
-                  <span className="text-sm font-bold text-slate-500 w-5 shrink-0">{c.label}.</span>
-                  <span className="text-sm text-slate-800">{c.choice_text}</span>
-                </label>
-              ))}
+              {(problem.choices ?? []).sort((a, b) => a.order_index - b.order_index).map(c => {
+                const isSelected = answers[current] === c.label
+                return (
+                  <label
+                    key={c.id}
+                    className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200"
+                    style={isSelected
+                      ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.5)' }
+                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    <input type="radio" name={`q${current}`} value={c.label}
+                      checked={isSelected}
+                      onChange={() => setAnswers(a => ({ ...a, [current]: c.label }))}
+                      className="accent-blue-500 mt-0.5 shrink-0" />
+                    <span className="text-sm font-bold text-slate-400 w-5 shrink-0">{c.label}.</span>
+                    <span className="text-sm text-slate-200">{c.choice_text}</span>
+                  </label>
+                )
+              })}
             </div>
           ) : (
             <input
-              className="w-full px-4 py-3 border-2 rounded-xl text-base transition-all focus:outline-none"
-              style={{ borderColor: '#E2E8F0' }}
-              onFocus={e => (e.target.style.borderColor = '#3B82F6')}
-              onBlur={e => (e.target.style.borderColor = '#E2E8F0')}
+              className="w-full px-4 py-3 rounded-xl text-base text-slate-200 transition-all duration-200 focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
+              onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+              onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.12)')}
               placeholder="Type your answer…"
               value={answers[current] ?? ''}
               onChange={e => setAnswers(a => ({ ...a, [current]: e.target.value }))}
@@ -314,23 +355,25 @@ export default function ExamClient({ problems, userId }: ExamClientProps) {
         </div>
       )}
 
-      {/* Nav buttons */}
       <div className="flex gap-3">
         <button
           onClick={() => setCurrent(c => c - 1)}
           disabled={current === 0}
-          className="px-5 py-3 border-2 border-slate-200 text-slate-700 rounded-full text-sm font-semibold disabled:opacity-40 hover:border-slate-300 hover:bg-slate-50 transition-all min-h-[44px]"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-semibold text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 min-h-[44px]"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
+          onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
         >
-          ← Prev
+          <ArrowLeft size={14} strokeWidth={2} /> Prev
         </button>
 
         {current < problems.length - 1 ? (
           <button
             onClick={() => setCurrent(c => c + 1)}
-            className="flex-1 py-3 font-bold text-white rounded-full text-sm transition-all hover:scale-[1.02] min-h-[44px]"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
+            className="flex-1 inline-flex items-center justify-center gap-2 py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.01] min-h-[44px]"
+            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 24px rgba(59,130,246,0.35)' }}
           >
-            Next →
+            Next <ArrowRight size={14} strokeWidth={2.5} />
           </button>
         ) : (
           <button
@@ -340,31 +383,29 @@ export default function ExamClient({ problems, userId }: ExamClientProps) {
               submitExam()
             }}
             disabled={submitting}
-            className="flex-1 py-3 font-bold text-white rounded-full text-sm transition-all hover:scale-[1.02] disabled:opacity-60 min-h-[44px]"
-            style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}
+            className="flex-1 inline-flex items-center justify-center gap-2 py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.01] disabled:opacity-60 min-h-[44px]"
+            style={{ background: 'linear-gradient(135deg, #10B981, #059669)', boxShadow: '0 8px 24px rgba(16,185,129,0.35)' }}
           >
             {submitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Submitting…
-              </span>
-            ) : 'Submit Exam ✓'}
+              <><Loader2 size={14} className="animate-spin" /> Submitting…</>
+            ) : (
+              <>Submit Exam <Check size={14} strokeWidth={2.5} /></>
+            )}
           </button>
         )}
       </div>
 
-      {/* Question grid */}
-      <div className="mt-5 flex flex-wrap gap-1.5">
+      <div className="mt-6 flex flex-wrap gap-1.5">
         {problems.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className="w-9 h-9 rounded-lg text-xs font-bold transition-all hover:scale-110 min-h-[44px] min-w-[36px]"
+            className="w-9 h-9 rounded-lg text-xs font-bold transition-all duration-200 hover:scale-110"
             style={i === current
-              ? { background: '#3B82F6', color: 'white' }
+              ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white', boxShadow: '0 0 16px rgba(59,130,246,0.5)' }
               : i in answers
-                ? { background: 'rgba(16,185,129,0.15)', color: '#059669' }
-                : { background: '#F1F5F9', color: '#64748B' }}
+                ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)' }
+                : { background: 'rgba(255,255,255,0.04)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             {i + 1}
           </button>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Check, Sparkles, Loader2, ArrowRight } from 'lucide-react'
 
 const PRO_FEATURES = [
   'Unlock Analytics Dashboard',
@@ -45,39 +46,57 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Subscription</h1>
-        <p className="text-slate-500 mt-1.5">Choose the plan that works best for you.</p>
+      <div className="mb-10">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+          Subscription
+        </h1>
+        <p className="text-slate-400 mt-2 text-lg">Choose the plan that works best for you.</p>
       </div>
 
       {error && (
-        <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
+        <div className="mb-6 px-5 py-3 rounded-2xl text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#FCA5A5' }}>
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-3xl">
         {/* Free */}
         <div
-          className="relative rounded-2xl p-7 flex flex-col transition-all duration-200"
+          className="relative rounded-2xl p-8 flex flex-col transition-all duration-300"
           style={!isSubscribed
-            ? { border: '2px solid #3B82F6', background: 'white', boxShadow: '0 0 0 4px rgba(59,130,246,0.08)' }
-            : { border: '2px solid #E2E8F0', background: 'white' }}
+            ? {
+                background: 'linear-gradient(145deg, rgba(59,130,246,0.08), rgba(255,255,255,0.02))',
+                border: '1px solid rgba(59,130,246,0.4)',
+                boxShadow: '0 0 0 4px rgba(59,130,246,0.08), 0 24px 60px rgba(0,0,0,0.35)',
+              }
+            : {
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              }}
         >
           {!isSubscribed && (
-            <span className="absolute -top-3 left-6 text-white text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}>
+            <span
+              className="absolute -top-3 left-7 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 20px rgba(59,130,246,0.4)' }}
+            >
               Current Plan
             </span>
           )}
-          <div className="mb-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Free</p>
-            <p className="text-4xl font-extrabold text-slate-900">$0 <span className="text-base font-normal text-slate-400">/ month</span></p>
+          <div className="mb-7">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Free</p>
+            <p className="text-5xl font-extrabold text-white tracking-tight">$0 <span className="text-base font-normal text-slate-500">/ month</span></p>
           </div>
-          <ul className="space-y-2.5 flex-1 mb-7">
+          <ul className="space-y-3 flex-1 mb-8">
             {FREE_FEATURES.map(f => (
-              <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600">
-                <span className="text-slate-400 shrink-0 font-bold">✓</span>{f}
+              <li key={f} className="flex items-center gap-3 text-sm text-slate-300">
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <Check size={11} strokeWidth={2.5} className="text-slate-400" />
+                </span>
+                {f}
               </li>
             ))}
           </ul>
@@ -85,12 +104,16 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
             <button
               onClick={() => toggle(false)}
               disabled={loading}
-              className="w-full py-3 border-2 border-red-300 text-red-600 hover:bg-red-50 rounded-full text-sm font-bold disabled:opacity-50 transition-all min-h-[44px]"
+              className="w-full py-3.5 rounded-full text-sm font-bold transition-all duration-200 disabled:opacity-50 min-h-[44px] hover:scale-[1.01]"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.4)', color: '#F87171' }}
             >
               {loading ? 'Updating…' : 'Downgrade to Free'}
             </button>
           ) : (
-            <div className="w-full py-3 text-center text-sm font-semibold text-blue-600 bg-blue-50 rounded-full border border-blue-200">
+            <div
+              className="w-full py-3.5 text-center text-sm font-bold rounded-full"
+              style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#93C5FD' }}
+            >
               Your current plan ✓
             </div>
           )}
@@ -98,59 +121,71 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
 
         {/* Pro */}
         <div
-          className="relative rounded-2xl p-7 flex flex-col transition-all duration-200"
+          className="relative rounded-2xl p-8 flex flex-col transition-all duration-300"
           style={isSubscribed
             ? {
-                border: '2px solid #3B82F6',
-                background: 'linear-gradient(145deg, rgba(59,130,246,0.05), white)',
-                boxShadow: '0 0 40px rgba(59,130,246,0.2), 0 0 0 4px rgba(59,130,246,0.1)',
+                background: 'linear-gradient(145deg, rgba(59,130,246,0.15), rgba(29,78,216,0.06))',
+                border: '1px solid rgba(59,130,246,0.5)',
+                boxShadow: '0 0 60px rgba(59,130,246,0.25), 0 24px 60px rgba(0,0,0,0.4)',
               }
             : {
-                border: '2px solid #E2E8F0',
-                background: 'white',
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
               }}
         >
           {isSubscribed && (
-            <span className="absolute -top-3 left-6 text-white text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}>
+            <span
+              className="absolute -top-3 left-7 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 20px rgba(59,130,246,0.4)' }}
+            >
               Current Plan
             </span>
           )}
-          <div className="mb-6">
+          <div className="mb-7">
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Pro</p>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-blue-700"
-                style={{ background: 'rgba(59,130,246,0.12)' }}>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-blue-400">Pro</p>
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest"
+                style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#93C5FD' }}
+              >
                 Recommended
               </span>
             </div>
-            <p className="text-4xl font-extrabold text-slate-900">$10 <span className="text-base font-normal text-slate-400">/ month</span></p>
+            <p className="text-5xl font-extrabold text-white tracking-tight">$10 <span className="text-base font-normal text-slate-500">/ month</span></p>
           </div>
-          <ul className="space-y-2.5 flex-1 mb-7">
+          <ul className="space-y-3 flex-1 mb-8">
             {PRO_FEATURES.map(f => (
-              <li key={f} className="flex items-center gap-2.5 text-sm text-slate-700">
-                <span className="text-blue-500 shrink-0 font-bold">✓</span>{f}
+              <li key={f} className="flex items-center gap-3 text-sm text-slate-200">
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)' }}
+                >
+                  <Check size={11} strokeWidth={2.5} className="text-blue-300" />
+                </span>
+                {f}
               </li>
             ))}
           </ul>
           {isSubscribed ? (
-            <div className="w-full py-3 text-center text-sm font-bold text-blue-700 rounded-full"
-              style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}>
-              ✦ Active — Pro Plan
+            <div
+              className="w-full py-3.5 text-center text-sm font-bold rounded-full inline-flex items-center justify-center gap-2"
+              style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)', color: '#93C5FD' }}
+            >
+              <Sparkles size={14} strokeWidth={1.75} /> Active — Pro Plan
             </div>
           ) : (
             <button
               onClick={() => toggle(true)}
               disabled={loading}
-              className="w-full py-3 font-bold text-white rounded-full text-sm disabled:opacity-50 transition-all hover:scale-105 active:scale-95 min-h-[44px]"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 20px rgba(59,130,246,0.35)' }}
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 font-bold text-white rounded-full text-sm disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-95 min-h-[44px]"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 12px 30px rgba(59,130,246,0.4)' }}
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Updating…
-                </span>
-              ) : 'Upgrade to Pro — $10/month →'}
+                <><Loader2 size={14} className="animate-spin" /> Updating…</>
+              ) : (
+                <>Upgrade to Pro — $10/month <ArrowRight size={14} strokeWidth={2.5} /></>
+              )}
             </button>
           )}
         </div>

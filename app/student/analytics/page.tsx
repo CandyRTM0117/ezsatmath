@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Lock, ArrowRight } from 'lucide-react'
 import AnalyticsClient from './AnalyticsClient'
 
 export default async function AnalyticsPage() {
@@ -16,17 +17,32 @@ export default async function AnalyticsPage() {
   if (!profile?.is_subscribed) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="bg-white rounded-xl border border-slate-200 p-10 max-w-md w-full">
-          <div className="text-5xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Unlock Pro Analytics</h1>
-          <p className="text-slate-500 mb-6">
+        <div
+          className="rounded-2xl border border-white/10 p-10 max-w-md w-full"
+          style={{
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.35), 0 0 60px rgba(59,130,246,0.08)',
+          }}
+        >
+          <div
+            className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center"
+            style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}
+          >
+            <Lock size={28} strokeWidth={1.5} className="text-blue-300" />
+          </div>
+          <h1 className="text-3xl font-extrabold mb-3 tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+            Unlock Pro Analytics
+          </h1>
+          <p className="text-slate-400 text-sm leading-relaxed mb-7">
             Get detailed insights into your performance, daily activity charts, and exam history with a Pro subscription.
           </p>
           <Link
             href="/student/subscription"
-            className="inline-block w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
+            prefetch={true}
+            className="inline-flex items-center justify-center gap-2 w-full py-3.5 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 12px 30px rgba(59,130,246,0.4)' }}
           >
-            View Subscription Plans
+            View Subscription Plans <ArrowRight size={14} strokeWidth={2.5} />
           </Link>
         </div>
       </div>
