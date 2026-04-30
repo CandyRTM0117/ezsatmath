@@ -6,15 +6,16 @@ import Sidebar from './Sidebar'
 interface AppShellProps {
   role: 'admin' | 'student' | 'teacher'
   userName: string
+  userId: string
   children: React.ReactNode
 }
 
-export default function AppShell({ role, userName, children }: AppShellProps) {
+export default function AppShell({ role, userName, userId, children }: AppShellProps) {
   const pathname = usePathname()
 
   return (
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#0B1224' }}>
-      <Sidebar role={role} userName={userName} />
+      <Sidebar role={role} userName={userName} userId={userId} />
 
       <main className="relative flex-1 overflow-y-auto pt-16 px-4 pb-8 md:p-8 lg:p-12"
         style={{ background: '#0B1224' }}>

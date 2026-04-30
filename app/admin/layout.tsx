@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== 'admin') redirect('/student/dashboard')
 
   return (
-    <AppShell role="admin" userName={profile?.name ?? user.email ?? ''}>
+    <AppShell role="admin" userName={profile?.name ?? user.email ?? ''} userId={user.id}>
       {children}
     </AppShell>
   )

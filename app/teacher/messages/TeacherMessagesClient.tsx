@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Send, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -30,7 +30,8 @@ export default function TeacherMessagesClient({
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => createClient(), [])
 
   const thread = messages.filter(m =>
     (m.sender_id === userId && m.receiver_id === selectedStudent?.id) ||

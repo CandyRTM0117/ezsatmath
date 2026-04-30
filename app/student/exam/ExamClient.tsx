@@ -1,22 +1,21 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2, Lock } from 'lucide-react'
+import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2, Lock, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Problem, Choice } from '@/types'
 
 type ProblemWithChoices = Problem & { choices?: Choice[] }
 
-const EXAM_DURATION = 44 * 60
-const PART1_EASY = 15
-const PART1_MEDIUM = 20
-const PART2_HARD_HIGH = 25
-const PART2_MEDIUM_HIGH = 10
-const PART2_MEDIUM_LOW = 25
-const PART2_HARD_LOW = 10
-// threshold: score out of 35 to determine Part 2 difficulty
-const PART1_THRESHOLD = 18
+const EXAM_DURATION = 35 * 60
+const PART1_EASY = 10
+const PART1_MEDIUM = 12
+const PART2_HARD_HIGH = 14
+const PART2_MEDIUM_HIGH = 8
+const PART2_MEDIUM_LOW = 14
+const PART2_HARD_LOW = 8
+const PART1_THRESHOLD = 11
 const FREE_EXAM_LIMIT = 3
 
 interface ExamHistoryRecord {
@@ -50,6 +49,21 @@ interface PartResult {
   duration_s: number
   satScore: number
   breakdown: AnswerResult[]
+}
+
+interface DetailAnswer {
+  id: string
+  user_answer: string
+  is_correct: boolean
+  problem?: { question: string; solution: string; explanation?: string }
+}
+
+interface FullDetail {
+  loading: boolean
+  e1: ExamHistoryRecord
+  e2?: ExamHistoryRecord
+  answers1: DetailAnswer[]
+  answers2: DetailAnswer[]
 }
 
 type ExamPhase = 'idle' | 'part1_active' | 'part1_done' | 'part2_active' | 'final'
@@ -97,6 +111,8 @@ export default function ExamClient({
   const [part1Result, setPart1Result] = useState<PartResult | null>(null)
   const [part2Result, setPart2Result] = useState<PartResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [fullDetail, setFullDetail] = useState<FullDetail | null>(null)
+  const [expandedExplanations, setExpandedExplanations] = useState<Set<string>>(new Set())
   const submitted = useRef(false)
   const supabase = createClient()
 
@@ -166,6 +182,34 @@ export default function ExamClient({
     return () => clearInterval(timer)
   }, [phase, submitActivePart])
 
+  async function openDetail(e1: ExamHistoryRecord, e2?: ExamHistoryRecord) {
+    setExpandedExplanations(new Set())
+    setFullDetail({ loading: true, e1, e2, answers1: [], answers2: [] })
+    const [r1, r2] = await Promise.all([
+      supabase.from('exam_answers')
+        .select('id, user_answer, is_correct, problem:problems(question, solution, explanation)')
+        .eq('exam_id', e1.id),
+      e2
+        ? supabase.from('exam_answers')
+            .select('id, user_answer, is_correct, problem:problems(question, solution, explanation)')
+            .eq('exam_id', e2.id)
+        : Promise.resolve({ data: [] }),
+    ])
+    setFullDetail({
+      loading: false, e1, e2,
+      answers1: (r1.data ?? []) as unknown as DetailAnswer[],
+      answers2: ((r2 as any).data ?? []) as unknown as DetailAnswer[],
+    })
+  }
+
+  function toggleExplanation(id: string) {
+    setExpandedExplanations(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
   function startPart1() {
     const easy = pick(easyProblems, PART1_EASY, new Set())
     const medium = pick(mediumProblems, PART1_MEDIUM, new Set())
@@ -179,20 +223,9 @@ export default function ExamClient({
   function startPart2() {
     const usedIds = new Set(part1Problems.map(p => p.id))
     const highScore = (part1Result?.score ?? 0) >= PART1_THRESHOLD
-    let p2: ProblemWithChoices[]
-    if (highScore) {
-      // 25 hard + 10 medium
-      p2 = shuffle([
-        ...pick(hardProblems, PART2_HARD_HIGH, usedIds),
-        ...pick(mediumProblems, PART2_MEDIUM_HIGH, usedIds),
-      ])
-    } else {
-      // 25 medium + 10 hard
-      p2 = shuffle([
-        ...pick(mediumProblems, PART2_MEDIUM_LOW, usedIds),
-        ...pick(hardProblems, PART2_HARD_LOW, usedIds),
-      ])
-    }
+    const p2 = highScore
+      ? shuffle([...pick(hardProblems, PART2_HARD_HIGH, usedIds), ...pick(mediumProblems, PART2_MEDIUM_HIGH, usedIds)])
+      : shuffle([...pick(mediumProblems, PART2_MEDIUM_LOW, usedIds), ...pick(hardProblems, PART2_HARD_LOW, usedIds)])
     setPart2Problems(p2)
     setCurrent(0); setAnswers({}); setTimeLeft(EXAM_DURATION)
     setStartTime(Date.now()); submitted.current = false
@@ -201,6 +234,154 @@ export default function ExamClient({
 
   function fmtTime(s: number) {
     return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
+  }
+
+  /* ---- FULL DETAIL VIEW ---- */
+  if (phase === 'idle' && fullDetail) {
+    const { loading, e1, e2, answers1, answers2 } = fullDetail
+    const pct1 = e1.total ? Math.round(e1.score / e1.total * 100) : 0
+    const pct2 = e2 && e2.total ? Math.round(e2.score / e2.total * 100) : null
+    const totalScore = e1.score + (e2?.score ?? 0)
+    const totalQ = e1.total + (e2?.total ?? 0)
+    const combinedSat = toSatScore(totalScore, totalQ)
+    const satColor = combinedSat >= 650 ? '#34D399' : combinedSat >= 450 ? '#FBBF24' : '#F87171'
+    const color1 = pct1 >= 80 ? '#34D399' : pct1 >= 50 ? '#FBBF24' : '#F87171'
+    const color2 = pct2 != null ? (pct2 >= 80 ? '#34D399' : pct2 >= 50 ? '#FBBF24' : '#F87171') : null
+
+    return (
+      <div>
+        <div className="flex items-center gap-4 mb-10">
+          <button
+            onClick={() => setFullDetail(null)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-slate-300 transition-all hover:text-white"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <ArrowLeft size={14} strokeWidth={2} /> Back
+          </button>
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+              Exam Details
+            </h1>
+            <p className="text-slate-400 mt-1">
+              {new Date(e1.taken_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-slate-400 gap-3">
+            <Loader2 size={20} className="animate-spin" /> Loading exam details…
+          </div>
+        ) : (
+          <>
+            {/* Score summary cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              {[
+                { label: 'SAT Score', value: combinedSat, from: satColor, to: satColor + '99' },
+                { label: 'Total Correct', value: `${totalScore}/${totalQ}`, from: '#60A5FA', to: '#3B82F6' },
+                { label: 'Part 1', value: `${e1.score}/${e1.total} (${pct1}%)`, from: color1, to: color1 + '99' },
+                { label: 'Part 2', value: e2 && pct2 != null ? `${e2.score}/${e2.total} (${pct2}%)` : '—', from: color2 ?? '#94A3B8', to: (color2 ?? '#94A3B8') + '99' },
+              ].map(s => (
+                <div
+                  key={s.label}
+                  className="rounded-2xl border border-white/10 p-5"
+                  style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))', boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}
+                >
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
+                  <p
+                    className="text-2xl font-extrabold tracking-tight"
+                    style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+                  >
+                    {s.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Per-part question lists */}
+            {([{ label: 'Part 1', record: e1, answers: answers1 }, { label: 'Part 2', record: e2, answers: answers2 }] as const).map(({ label, record, answers }) => {
+              if (!record || answers.length === 0) return null
+              return (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-white/10 overflow-hidden mb-6"
+                  style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
+                >
+                  <div className="px-7 py-5 border-b border-white/8 flex items-center justify-between">
+                    <h2 className="font-extrabold text-white text-lg tracking-tight">{label} — {record.score}/{record.total}</h2>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                      {record.total ? Math.round(record.score / record.total * 100) : 0}% correct
+                    </span>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {answers.map((a, i) => {
+                      const prob = a.problem as any
+                      const expanded = expandedExplanations.has(a.id)
+                      return (
+                        <div
+                          key={a.id}
+                          className="px-7 py-5"
+                          style={a.is_correct
+                            ? { borderLeft: '3px solid rgba(16,185,129,0.4)' }
+                            : { borderLeft: '3px solid rgba(239,68,68,0.4)' }}
+                        >
+                          <div className="flex items-start gap-3 mb-2">
+                            <span
+                              className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+                              style={a.is_correct
+                                ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)' }
+                                : { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }}
+                            >
+                              {i + 1}
+                            </span>
+                            <p className="text-sm text-slate-200 leading-relaxed flex-1">{prob?.question ?? '—'}</p>
+                          </div>
+                          <div className="ml-9 flex flex-wrap gap-6 text-xs text-slate-400 mb-3">
+                            <span>
+                              Your answer:{' '}
+                              <span className={`font-bold ${a.is_correct ? 'text-green-400' : 'text-red-400'}`}>
+                                {a.user_answer || '—'}
+                              </span>
+                            </span>
+                            {!a.is_correct && (
+                              <span>
+                                Correct: <span className="font-bold text-slate-200">{prob?.solution ?? '—'}</span>
+                              </span>
+                            )}
+                          </div>
+                          {(prob?.explanation || !a.is_correct) && (
+                            <div className="ml-9">
+                              <button
+                                onClick={() => toggleExplanation(a.id)}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                              >
+                                {expanded ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}
+                                {expanded ? 'Hide' : 'Show'} Solution
+                              </button>
+                              {expanded && prob?.explanation && (
+                                <div
+                                  className="mt-2 p-4 rounded-xl text-sm text-amber-100/90 leading-relaxed"
+                                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}
+                                >
+                                  {prob.explanation}
+                                </div>
+                              )}
+                              {expanded && !prob?.explanation && (
+                                <p className="mt-2 text-xs text-slate-500 italic">No explanation available.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </>
+        )}
+      </div>
+    )
   }
 
   /* ---- IDLE ---- */
@@ -229,12 +410,12 @@ export default function ExamClient({
             <div className="p-8">
               <h2 className="text-2xl font-extrabold text-white mb-3 tracking-tight">SAT Math Practice</h2>
               <div className="flex flex-wrap items-center gap-5 text-sm text-slate-400 mb-5">
-                <span className="inline-flex items-center gap-2"><FileText size={16} strokeWidth={1.75} className="text-blue-400" /> 2 parts · 35 questions each</span>
-                <span className="inline-flex items-center gap-2"><Timer size={16} strokeWidth={1.75} className="text-blue-400" /> 44 min per part</span>
+                <span className="inline-flex items-center gap-2"><FileText size={16} strokeWidth={1.75} className="text-blue-400" /> 2 parts · 22 questions each</span>
+                <span className="inline-flex items-center gap-2"><Timer size={16} strokeWidth={1.75} className="text-blue-400" /> 35 min per part</span>
               </div>
               <div className="rounded-xl p-4 mb-5 text-sm space-y-1" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="text-slate-300 font-semibold">How it works</p>
-                <p className="text-slate-400">Part 1: 15 easy + 20 medium questions</p>
+                <p className="text-slate-400">Part 1: 10 easy + 12 medium questions</p>
                 <p className="text-slate-400">Part 2: adaptive — harder if you score well in Part 1</p>
               </div>
 
@@ -280,27 +461,53 @@ export default function ExamClient({
             </div>
             <div className="divide-y divide-white/5">
               {examPairs.map(e1 => {
-                const e2 = examHistory.find(e => e.part === 2 && new Date(e.taken_at).toDateString() === new Date(e1.taken_at).toDateString())
+                const e2 = examHistory.find(e =>
+                  e.part === 2 &&
+                  new Date(e.taken_at).toDateString() === new Date(e1.taken_at).toDateString()
+                )
                 const pct1 = Math.round(e1.score / e1.total * 100)
                 const pct2 = e2 ? Math.round(e2.score / e2.total * 100) : null
                 const color1 = pct1 >= 80 ? '#34D399' : pct1 >= 50 ? '#FBBF24' : '#F87171'
                 const color2 = pct2 != null ? (pct2 >= 80 ? '#34D399' : pct2 >= 50 ? '#FBBF24' : '#F87171') : null
+                const totalScore = e1.score + (e2?.score ?? 0)
+                const totalQ = e1.total + (e2?.total ?? 0)
+                const sat = toSatScore(totalScore, totalQ)
+                const satColor = sat >= 650 ? '#34D399' : sat >= 450 ? '#FBBF24' : '#F87171'
+
                 return (
-                  <div key={e1.id} className="px-7 py-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-slate-300">
-                        {new Date(e1.taken_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    </div>
-                    <div className="flex gap-6 text-sm">
+                  <div key={e1.id} className="px-7 py-5">
+                    <div className="flex items-center justify-between mb-3">
                       <div>
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Part 1</span>
-                        <p className="font-extrabold tabular-nums" style={{ color: color1 }}>{e1.score}/{e1.total} ({pct1}%)</p>
+                        <span className="text-sm font-bold text-white">
+                          {new Date(e1.taken_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        <span className="ml-3 text-xs font-bold tabular-nums" style={{ color: satColor }}>
+                          SAT {sat}
+                        </span>
                       </div>
-                      {e2 && color2 && (
+                      <button
+                        onClick={() => openDetail(e1, e2)}
+                        className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 rounded-lg"
+                        style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                    <div className="flex gap-8 text-sm">
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Part 1</span>
+                        <p className="font-extrabold tabular-nums" style={{ color: color1 }}>{e1.score}/{e1.total} ({pct1}%)</p>
+                        <div className="w-24 bg-white/5 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                          <div className="h-1.5 rounded-full" style={{ width: `${pct1}%`, background: color1 }} />
+                        </div>
+                      </div>
+                      {e2 && color2 && pct2 != null && (
                         <div>
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Part 2</span>
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Part 2</span>
                           <p className="font-extrabold tabular-nums" style={{ color: color2 }}>{e2.score}/{e2.total} ({pct2}%)</p>
+                          <div className="w-24 bg-white/5 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                            <div className="h-1.5 rounded-full" style={{ width: `${pct2}%`, background: color2 }} />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -396,12 +603,12 @@ export default function ExamClient({
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
-                <p className="font-extrabold text-white text-xl">{part1Result.score}/35</p>
+                <p className="font-extrabold text-white text-xl">{part1Result.score}/{part1Result.total}</p>
                 <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Part 1</p>
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
-                <p className="font-extrabold text-white text-xl">{part2Result.score}/35</p>
+                <p className="font-extrabold text-white text-xl">{part2Result.score}/{part2Result.total}</p>
                 <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Part 2</p>
               </div>
             </div>
@@ -416,7 +623,6 @@ export default function ExamClient({
           </div>
         </div>
 
-        {/* Part breakdown */}
         {[{ label: 'Part 1', result: part1Result }, { label: 'Part 2', result: part2Result }].map(({ label, result }) => (
           <div
             key={label}

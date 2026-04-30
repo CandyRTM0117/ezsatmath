@@ -16,7 +16,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   if (profile?.role !== 'teacher') redirect('/login')
 
   return (
-    <AppShell role="teacher" userName={profile?.name ?? user.email ?? ''}>
+    <AppShell role="teacher" userName={profile?.name ?? user.email ?? ''} userId={user.id}>
       {children}
     </AppShell>
   )

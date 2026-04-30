@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, Component, type ReactNode } from 'react'
-import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useRef, Component, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
 import type { Problem, Choice, ProblemCategory } from '@/types'
@@ -46,47 +47,66 @@ export default function ProblemsClient({
 }) {
   const [attemptMap, setAttemptMap] = useState(initialAttemptMap)
   const [bookmarks, setBookmarks] = useState<Set<string>>(initialBookmarks)
+  const [bookmarkLoading, setBookmarkLoading] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<ProblemWithChoices | null>(null)
   const [answer, setAnswer] = useState('')
   const [result, setResult] = useState<{ correct: boolean; explanation: string | null } | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [filterDiff, setFilterDiff] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
 
-  const supabase = createClient()
+  const supabase = useRef(createClient()).current
 
   function openProblem(p: ProblemWithChoices) {
     setSelected(p)
     setAnswer('')
     setResult(null)
+    document.body.style.overflow = 'hidden'
+  }
+
+  function closeProblem() {
+    setSelected(null)
+    document.body.style.overflow = ''
   }
 
   async function submit() {
-    if (!selected || !answer) return
-
-    const isCorrect = selected.type === 'mc'
-      ? selected.choices?.find(c => c.label === answer)?.is_correct ?? false
-      : answer.trim().toLowerCase() === selected.solution.trim().toLowerCase()
-
-    await supabase.from('problem_attempts').insert({
-      user_id: userId,
-      problem_id: selected.id,
-      is_correct: isCorrect,
-    })
-
-    setAttemptMap(m => ({ ...m, [selected.id]: isCorrect }))
-    setResult({ correct: isCorrect, explanation: isCorrect ? null : (selected.explanation ?? null) })
+    if (!selected || !answer || submitting) return
+    setSubmitting(true)
+    try {
+      const isCorrect = selected.type === 'mc'
+        ? selected.choices?.find(c => c.label === answer)?.is_correct ?? false
+        : answer.trim().toLowerCase() === selected.solution.trim().toLowerCase()
+      await supabase.from('problem_attempts').insert({
+        user_id: userId,
+        problem_id: selected.id,
+        is_correct: isCorrect,
+      })
+      setAttemptMap(m => ({ ...m, [selected.id]: isCorrect }))
+      setResult({ correct: isCorrect, explanation: isCorrect ? null : (selected.explanation ?? null) })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function toggleBookmark(e: React.MouseEvent, problemId: string) {
     e.stopPropagation()
-    if (bookmarks.has(problemId)) {
-      setBookmarks(prev => { const n = new Set(prev); n.delete(problemId); return n })
-      await supabase.from('bookmarks').delete().eq('user_id', userId).eq('problem_id', problemId)
-    } else {
-      setBookmarks(prev => new Set(prev).add(problemId))
-      await supabase.from('bookmarks').insert({ user_id: userId, problem_id: problemId })
+    if (bookmarkLoading.has(problemId)) return
+    setBookmarkLoading(prev => new Set(prev).add(problemId))
+    try {
+      const { data: existing } = await supabase
+        .from('bookmarks').select('id')
+        .eq('user_id', userId).eq('problem_id', problemId).maybeSingle()
+      if (existing) {
+        await supabase.from('bookmarks').delete().eq('id', existing.id)
+        setBookmarks(prev => { const n = new Set(prev); n.delete(problemId); return n })
+      } else {
+        await supabase.from('bookmarks').insert({ user_id: userId, problem_id: problemId })
+        setBookmarks(prev => new Set(prev).add(problemId))
+      }
+    } finally {
+      setBookmarkLoading(prev => { const n = new Set(prev); n.delete(problemId); return n })
     }
   }
 
@@ -188,13 +208,15 @@ export default function ProblemsClient({
         </div>
       )}
 
-      {/* Problem modal */}
-      {selected && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8 fade-in">
+      {/* Problem modal — rendered via portal so CSS transforms in AppShell don't affect fixed positioning */}
+      {selected && createPortal(
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8 fade-in" onClick={closeProblem}>
           <ProblemErrorBoundary>
             <div
-              className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden zoom-in-95 max-h-[90vh]"
+              className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden zoom-in-95"
+              onClick={e => e.stopPropagation()}
               style={{
+                height: '85vh',
                 background: '#0F172A',
                 border: '1px solid rgba(255,255,255,0.1)',
                 boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
@@ -216,9 +238,23 @@ export default function ProblemsClient({
                       </span>
                     )}
                   </div>
-                  <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5 ml-4 flex-shrink-0">
-                    <X size={20} strokeWidth={1.75} />
-                  </button>
+                  <div className="flex items-center gap-2 ml-4 shrink-0">
+                    <button
+                      onClick={e => toggleBookmark(e, selected.id)}
+                      disabled={bookmarkLoading.has(selected.id)}
+                      className="text-slate-400 hover:text-yellow-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-50"
+                      title={bookmarks.has(selected.id) ? 'Remove bookmark' : 'Bookmark'}
+                    >
+                      {bookmarkLoading.has(selected.id)
+                        ? <Loader2 size={18} strokeWidth={1.75} className="animate-spin" />
+                        : bookmarks.has(selected.id)
+                          ? <BookmarkCheck size={18} strokeWidth={1.75} className="text-yellow-400" />
+                          : <Bookmark size={18} strokeWidth={1.75} />}
+                    </button>
+                    <button onClick={closeProblem} className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5">
+                      <X size={20} strokeWidth={1.75} />
+                    </button>
+                  </div>
                 </div>
 
                 {selected.title && <h2 className="text-2xl font-extrabold text-white mb-4 leading-tight tracking-tight">{selected.title}</h2>}
@@ -259,7 +295,7 @@ export default function ProblemsClient({
                       </div>
                     </div>
                     <button
-                      onClick={() => setSelected(null)}
+                      onClick={closeProblem}
                       className="w-full py-3.5 rounded-full text-sm font-semibold text-slate-200 transition-all duration-200 mt-auto"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
@@ -304,18 +340,21 @@ export default function ProblemsClient({
                     )}
                     <button
                       onClick={submit}
-                      disabled={!answer}
+                      disabled={!answer || submitting}
                       className="w-full py-4 font-bold text-white rounded-full text-base transition-all duration-200 mt-6 hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                       style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 10px 30px rgba(59,130,246,0.4)' }}
                     >
-                      Submit Answer
+                      {submitting
+                        ? <span className="inline-flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Submitting…</span>
+                        : 'Submit Answer'}
                     </button>
                   </>
                 )}
               </div>
             </div>
           </ProblemErrorBoundary>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -324,10 +363,10 @@ export default function ProblemsClient({
           const correct = attemptMap[p.id]
           const isBookmarked = bookmarks.has(p.id)
           return (
-            <button
+            <div
               key={p.id}
               onClick={() => openProblem(p)}
-              className="text-left rounded-2xl p-6 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 relative"
+              className="cursor-pointer text-left rounded-2xl p-6 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 relative"
               style={{
                 background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
                 boxShadow: '0 12px 30px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02) inset',
@@ -337,12 +376,15 @@ export default function ProblemsClient({
             >
               <button
                 onClick={e => toggleBookmark(e, p.id)}
-                className="absolute top-4 right-4 text-slate-500 hover:text-yellow-400 transition-colors z-10"
+                disabled={bookmarkLoading.has(p.id)}
+                className="absolute top-4 right-4 text-slate-500 hover:text-yellow-400 transition-colors z-10 disabled:opacity-50"
                 title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
               >
-                {isBookmarked
-                  ? <BookmarkCheck size={16} strokeWidth={1.75} className="text-yellow-400" />
-                  : <Bookmark size={16} strokeWidth={1.75} />}
+                {bookmarkLoading.has(p.id)
+                  ? <Loader2 size={16} strokeWidth={1.75} className="animate-spin text-slate-400" />
+                  : isBookmarked
+                    ? <BookmarkCheck size={16} strokeWidth={1.75} className="text-yellow-400" />
+                    : <Bookmark size={16} strokeWidth={1.75} />}
               </button>
 
               <div className="flex items-start justify-between mb-3 pr-6">
@@ -364,7 +406,7 @@ export default function ProblemsClient({
               {p.title && <p className="font-extrabold text-white text-base mb-2">{p.title}</p>}
               <p className="text-slate-400 text-sm leading-relaxed line-clamp-3">{p.question}</p>
               {p.topic && <p className="text-xs text-slate-500 mt-3 font-semibold">{p.topic}</p>}
-            </button>
+            </div>
           )
         })}
         {paginated.length === 0 && (
