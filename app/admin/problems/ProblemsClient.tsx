@@ -226,7 +226,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
               <input
                 className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
                 style={inputStyle}
-                placeholder="Title (optional)"
+                placeholder="Problem ID (e.g. SAT-001)"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 onFocus={inputFocus}

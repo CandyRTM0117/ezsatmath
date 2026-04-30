@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'student'
+export type Role = 'admin' | 'student' | 'teacher'
 
 export interface User {
   id: string
@@ -61,4 +61,23 @@ export interface ProblemAttempt {
   problem_id: string
   is_correct: boolean
   attempted_at: string
+}
+
+export interface Bookmark {
+  id: string
+  user_id: string
+  problem_id: string
+  created_at: string
+}
+
+export interface Message {
+  id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  problem_id: string | null
+  created_at: string
+  sender?: { id: string; name: string | null; email: string }
+  receiver?: { id: string; name: string | null; email: string }
+  problem?: { id: string; title: string | null; question: string }
 }

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AppShell from '@/components/ui/AppShell'
 
-export default async function StudentLayout({ children }: { children: React.ReactNode }) {
+export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -13,11 +13,10 @@ export default async function StudentLayout({ children }: { children: React.Reac
     .eq('id', user.id)
     .single()
 
-  if (profile?.role === 'admin') redirect('/admin/users')
-  if (profile?.role === 'teacher') redirect('/teacher/problems')
+  if (profile?.role !== 'teacher') redirect('/login')
 
   return (
-    <AppShell role="student" userName={profile?.name ?? user.email ?? ''}>
+    <AppShell role="teacher" userName={profile?.name ?? user.email ?? ''}>
       {children}
     </AppShell>
   )

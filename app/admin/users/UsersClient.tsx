@@ -16,7 +16,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
   const [users, setUsers] = useState<User[]>(initialUsers)
   const [showAdd, setShowAdd] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' as 'admin' | 'student' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' as 'admin' | 'student' | 'teacher' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -143,9 +143,10 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
               )}
               <Dropdown
                 value={form.role}
-                onChange={v => setForm(f => ({ ...f, role: v as 'admin' | 'student' }))}
+                onChange={v => setForm(f => ({ ...f, role: v as 'admin' | 'student' | 'teacher' }))}
                 options={[
                   { value: 'student', label: 'Student' },
+                  { value: 'teacher', label: 'Teacher' },
                   { value: 'admin', label: 'Admin' },
                 ]}
                 className="w-full"

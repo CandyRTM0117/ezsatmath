@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import ProblemsClient from './ProblemsClient'
+import TeacherProblemsClient from './TeacherProblemsClient'
 
-export default async function ProblemsPage() {
+export default async function TeacherProblemsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -9,11 +9,9 @@ export default async function ProblemsPage() {
   const [
     { data: problems },
     { data: attempts },
-    { data: bookmarkRows },
   ] = await Promise.all([
     supabase.from('problems').select('*, choices(*)').order('order_index', { ascending: true }),
     supabase.from('problem_attempts').select('problem_id, is_correct').eq('user_id', user.id),
-    supabase.from('bookmarks').select('problem_id').eq('user_id', user.id),
   ])
 
   const attemptMap = new Map<string, boolean>()
@@ -23,14 +21,11 @@ export default async function ProblemsPage() {
     }
   }
 
-  const initialBookmarks = new Set((bookmarkRows ?? []).map(b => b.problem_id))
-
   return (
-    <ProblemsClient
+    <TeacherProblemsClient
       problems={problems ?? []}
       attemptMap={Object.fromEntries(attemptMap)}
       userId={user.id}
-      initialBookmarks={initialBookmarks}
     />
   )
 }

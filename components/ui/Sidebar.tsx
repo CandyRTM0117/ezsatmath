@@ -15,6 +15,8 @@ import {
   ChevronLeft,
   Menu,
   X,
+  Bookmark,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +24,7 @@ import { createClient } from '@/lib/supabase/client'
 interface NavItem { href: string; label: string; Icon: LucideIcon }
 
 interface SidebarProps {
-  role: 'admin' | 'student'
+  role: 'admin' | 'student' | 'teacher'
   userName: string
 }
 
@@ -37,8 +39,21 @@ const studentNav: NavItem[] = [
   { href: '/student/problems',     label: 'Problems',     Icon: FileText },
   { href: '/student/exam',         label: 'Exam',         Icon: ClipboardList },
   { href: '/student/analytics',    label: 'Analytics',    Icon: LineChart },
+  { href: '/student/bookmarks',    label: 'Bookmarks',    Icon: Bookmark },
+  { href: '/student/messages',     label: 'Messages',     Icon: MessageSquare },
   { href: '/student/subscription', label: 'Subscription', Icon: CreditCard },
 ]
+
+const teacherNav: NavItem[] = [
+  { href: '/teacher/problems',  label: 'Problems', Icon: FileText },
+  { href: '/teacher/messages',  label: 'Messages', Icon: MessageSquare },
+]
+
+function getNav(role: SidebarProps['role']) {
+  if (role === 'admin') return adminNav
+  if (role === 'teacher') return teacherNav
+  return studentNav
+}
 
 export default function Sidebar({ role, userName }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -46,7 +61,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
   const [optimisticHref, setOptimisticHref] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
-  const nav = role === 'admin' ? adminNav : studentNav
+  const nav = getNav(role)
   const activePath = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : pathname
 
   async function handleLogout() {
@@ -72,10 +87,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
 
       {/* Mobile backdrop */}
       {isOpen && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/60 z-30 fade-in"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="md:hidden fixed inset-0 bg-black/60 z-30 fade-in" onClick={() => setIsOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -94,10 +106,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
         }}
       >
         {/* Logo row */}
-        <div
-          className="flex items-center justify-between px-4 py-5 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-        >
+        <div className="flex items-center justify-between px-4 py-5 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           {isCollapsed ? (
             <span className="text-lg font-extrabold mx-auto select-none bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">Ez</span>
           ) : (
@@ -112,15 +121,10 @@ export default function Sidebar({ role, userName }: SidebarProps) {
               </p>
             </div>
           )}
-
-          {/* Mobile close */}
           <button
             onClick={() => setIsOpen(false)}
             aria-label="Close menu"
-            className={[
-              'md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200',
-              isCollapsed ? 'hidden' : '',
-            ].join(' ')}
+            className={['md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200', isCollapsed ? 'hidden' : ''].join(' ')}
           >
             <X size={16} strokeWidth={2.5} />
           </button>
@@ -136,38 +140,19 @@ export default function Sidebar({ role, userName }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 prefetch={true}
-                onClick={() => {
-                  setIsOpen(false)
-                  setOptimisticHref(item.href)
-                }}
+                onClick={() => { setIsOpen(false); setOptimisticHref(item.href) }}
                 title={isCollapsed ? item.label : undefined}
                 className={[
                   'group flex items-center rounded-xl text-sm font-semibold transition-all duration-200 relative',
                   isCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-3 py-2.5',
-                  active
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-white',
+                  active ? 'text-white' : 'text-slate-400 hover:text-white',
                 ].join(' ')}
-                style={
-                  active
-                    ? {
-                        background: 'linear-gradient(90deg, rgba(59,130,246,0.18), rgba(59,130,246,0.08))',
-                        boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.25)',
-                      }
-                    : undefined
-                }
-                onMouseEnter={e => {
-                  if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'
-                }}
-                onMouseLeave={e => {
-                  if (!active) (e.currentTarget as HTMLElement).style.background = ''
-                }}
+                style={active ? { background: 'linear-gradient(90deg, rgba(59,130,246,0.18), rgba(59,130,246,0.08))', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.25)' } : undefined}
+                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
+                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = '' }}
               >
                 {active && !isCollapsed && (
-                  <span
-                    className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
-                    style={{ background: 'linear-gradient(180deg, #60A5FA, #3B82F6)' }}
-                  />
+                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full" style={{ background: 'linear-gradient(180deg, #60A5FA, #3B82F6)' }} />
                 )}
                 <Icon
                   size={isCollapsed ? 22 : 18}
@@ -178,10 +163,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
                   <>
                     <span className="truncate">{item.label}</span>
                     {active && (
-                      <span
-                        className="ml-auto w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ background: '#60A5FA', boxShadow: '0 0 8px #60A5FA' }}
-                      />
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#60A5FA', boxShadow: '0 0 8px #60A5FA' }} />
                     )}
                   </>
                 )}
@@ -192,31 +174,21 @@ export default function Sidebar({ role, userName }: SidebarProps) {
 
         {/* Bottom: user + sign-out + collapse toggle */}
         <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Avatar + name */}
           <div className={['flex items-center gap-3 px-3 py-3', isCollapsed ? 'justify-center' : ''].join(' ')}>
             <div
               title={isCollapsed ? userName : undefined}
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)',
-                boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(59,130,246,0.3)',
-              }}
+              style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)', boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(59,130,246,0.3)' }}
             >
               {(userName[0] ?? '?').toUpperCase()}
             </div>
-            {!isCollapsed && (
-              <p className="text-xs font-semibold text-slate-300 truncate flex-1">{userName}</p>
-            )}
+            {!isCollapsed && <p className="text-xs font-semibold text-slate-300 truncate flex-1">{userName}</p>}
           </div>
 
-          {/* Sign out */}
           <button
             onClick={handleLogout}
             title={isCollapsed ? 'Sign out' : undefined}
-            className={[
-              'w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-500 hover:text-red-400 transition-all duration-200',
-              isCollapsed ? 'justify-center' : '',
-            ].join(' ')}
+            className={['w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-500 hover:text-red-400 transition-all duration-200', isCollapsed ? 'justify-center' : ''].join(' ')}
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
             onMouseLeave={e => (e.currentTarget.style.background = '')}
           >
@@ -224,7 +196,6 @@ export default function Sidebar({ role, userName }: SidebarProps) {
             {!isCollapsed && 'Sign out'}
           </button>
 
-          {/* Desktop collapse toggle */}
           <button
             onClick={() => setIsCollapsed(c => !c)}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}

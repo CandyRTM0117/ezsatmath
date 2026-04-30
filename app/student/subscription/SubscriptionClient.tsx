@@ -59,7 +59,7 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-3xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-3xl mx-auto">
         {/* Free */}
         <div
           className="relative rounded-2xl p-8 flex flex-col transition-all duration-300"

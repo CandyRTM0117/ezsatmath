@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 
 interface AppShellProps {
-  role: 'admin' | 'student'
+  role: 'admin' | 'student' | 'teacher'
   userName: string
   children: React.ReactNode
 }
