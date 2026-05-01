@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { Send, MessageSquare, Search, CornerUpLeft, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-interface Student { id: string; name: string | null; email: string }
+interface User { id: string; name: string | null; email: string }
 interface Message {
   id: string
   sender_id: string
@@ -17,16 +17,16 @@ interface Message {
   problem?: { id: string; title: string | null; question: string }
 }
 
-export default function TeacherMessagesClient({
-  userId, students, activeStudents, messages: initialMessages,
+export default function AdminMessagesClient({
+  userId, users, activeUsers, messages: initialMessages,
 }: {
   userId: string
-  students: Student[]
-  activeStudents: Student[]
+  users: User[]
+  activeUsers: User[]
   messages: Message[]
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(activeStudents[0] ?? null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(activeUsers[0] ?? null)
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
   const [search, setSearch] = useState('')
@@ -35,16 +35,16 @@ export default function TeacherMessagesClient({
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
-  const sidebarStudents = activeStudents.length > 0 ? activeStudents : students
+  const sidebarUsers = activeUsers.length > 0 ? activeUsers : users
 
-  const filteredStudents = sidebarStudents.filter(s => {
+  const filteredUsers = sidebarUsers.filter(u => {
     const q = search.toLowerCase()
-    return !q || displayName(s).toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+    return !q || displayName(u).toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
   })
 
   const thread = messages.filter(m =>
-    (m.sender_id === userId && m.receiver_id === selectedStudent?.id) ||
-    (m.receiver_id === userId && m.sender_id === selectedStudent?.id)
+    (m.sender_id === userId && m.receiver_id === selectedUser?.id) ||
+    (m.receiver_id === userId && m.sender_id === selectedUser?.id)
   )
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function TeacherMessagesClient({
   }, [thread.length])
 
   useEffect(() => {
-    if (!selectedStudent) return
+    if (!selectedUser) return
     const interval = setInterval(async () => {
       const { data } = await supabase
         .from('messages')
@@ -62,15 +62,15 @@ export default function TeacherMessagesClient({
       if (data) setMessages(data as any[])
     }, 10000)
     return () => clearInterval(interval)
-  }, [selectedStudent, userId, supabase])
+  }, [selectedUser, userId, supabase])
 
   async function sendMessage() {
-    if (!content.trim() || !selectedStudent || sending) return
+    if (!content.trim() || !selectedUser || sending) return
     setSending(true)
 
     let msgContent = content.trim()
     if (replyTo) {
-      const senderName = replyTo.sender_id === userId ? 'You' : (replyTo.sender?.name ?? replyTo.sender?.email ?? 'Student')
+      const senderName = replyTo.sender_id === userId ? 'You' : (replyTo.sender?.name ?? replyTo.sender?.email ?? 'User')
       const rawBody = replyTo.content.startsWith('↩ ')
         ? replyTo.content.split('\n\n').slice(1).join('\n\n')
         : replyTo.content
@@ -80,7 +80,7 @@ export default function TeacherMessagesClient({
 
     const { data } = await supabase
       .from('messages')
-      .insert({ sender_id: userId, receiver_id: selectedStudent.id, content: msgContent })
+      .insert({ sender_id: userId, receiver_id: selectedUser.id, content: msgContent })
       .select('*, sender:users!messages_sender_id_fkey(id, name, email), receiver:users!messages_receiver_id_fkey(id, name, email), problem:problems(id, title, question)')
       .single()
 
@@ -95,31 +95,31 @@ export default function TeacherMessagesClient({
     setMessages(prev => prev.filter(m => m.id !== id))
   }
 
-  function displayName(s: Student) { return s.name ?? s.email }
+  function displayName(u: User) { return u.name ?? u.email }
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">Messages</h1>
-        <p className="text-slate-400 mt-2 text-lg">Conversations with students</p>
+        <p className="text-slate-400 mt-2 text-lg">Conversations with users</p>
       </div>
 
-      {sidebarStudents.length === 0 ? (
+      {sidebarUsers.length === 0 ? (
         <div className="rounded-2xl border border-white/10 p-14 text-center text-slate-500" style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}>
-          No student conversations yet.
+          No conversations yet.
         </div>
       ) : (
         <div className="flex gap-6 h-[70vh]">
           {/* Sidebar */}
           <div className="w-64 shrink-0 flex flex-col gap-3">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Students</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Users</p>
             <div className="relative">
               <Search size={14} strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search students…"
+                placeholder="Search users…"
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                 onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
@@ -130,26 +130,26 @@ export default function TeacherMessagesClient({
               className="flex-1 overflow-y-auto rounded-2xl border border-white/10 overflow-hidden"
               style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}
             >
-              {filteredStudents.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-xs">No students found</div>
+              {filteredUsers.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 text-xs">No users found</div>
               ) : (
                 <div className="divide-y divide-white/5">
-                  {filteredStudents.map(s => (
+                  {filteredUsers.map(u => (
                     <button
-                      key={s.id}
-                      onClick={() => { setSelectedStudent(s); setReplyTo(null) }}
+                      key={u.id}
+                      onClick={() => { setSelectedUser(u); setReplyTo(null) }}
                       className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-all"
-                      style={selectedStudent?.id === s.id ? { background: 'rgba(59,130,246,0.1)' } : {}}
+                      style={selectedUser?.id === u.id ? { background: 'rgba(59,130,246,0.1)' } : {}}
                     >
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                         style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)' }}
                       >
-                        {displayName(s)[0].toUpperCase()}
+                        {displayName(u)[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-white text-sm truncate">{displayName(s)}</p>
-                        <p className="text-xs text-slate-500 truncate">{s.email}</p>
+                        <p className="font-bold text-white text-sm truncate">{displayName(u)}</p>
+                        <p className="text-xs text-slate-500 truncate">{u.email}</p>
                       </div>
                     </button>
                   ))}
@@ -159,7 +159,7 @@ export default function TeacherMessagesClient({
           </div>
 
           {/* Chat panel */}
-          {selectedStudent && (
+          {selectedUser && (
             <div className="flex-1 flex flex-col rounded-2xl border border-white/10 overflow-hidden" style={{ background: '#0B1224' }}>
               {/* Header */}
               <div
@@ -170,11 +170,11 @@ export default function TeacherMessagesClient({
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                   style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)' }}
                 >
-                  {displayName(selectedStudent)[0].toUpperCase()}
+                  {displayName(selectedUser)[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-bold text-white text-sm">{displayName(selectedStudent)}</p>
-                  <p className="text-xs text-slate-500">Student</p>
+                  <p className="font-bold text-white text-sm">{displayName(selectedUser)}</p>
+                  <p className="text-xs text-slate-500">{selectedUser.email}</p>
                 </div>
               </div>
 
@@ -183,7 +183,7 @@ export default function TeacherMessagesClient({
                 {thread.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
                     <MessageSquare size={32} strokeWidth={1.25} />
-                    <p className="text-sm">No messages yet with {displayName(selectedStudent)}</p>
+                    <p className="text-sm">No messages yet with {displayName(selectedUser)}</p>
                   </div>
                 )}
                 {thread.map(m => {
@@ -205,7 +205,6 @@ export default function TeacherMessagesClient({
                       onMouseLeave={() => setHoveredId(null)}
                     >
                       <div className={`flex items-end gap-1.5 max-w-[75%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
-                        {/* Hover actions */}
                         <div className={`flex flex-col gap-1 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'} ${isMine ? 'items-end' : 'items-start'}`}>
                           <button
                             onClick={() => setReplyTo(m)}
@@ -214,15 +213,13 @@ export default function TeacherMessagesClient({
                           >
                             <CornerUpLeft size={13} strokeWidth={2} />
                           </button>
-                          {isMine && (
-                            <button
-                              onClick={() => deleteMessage(m.id)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/5 transition-all"
-                              title="Delete"
-                            >
-                              <Trash2 size={13} strokeWidth={2} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => deleteMessage(m.id)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/5 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={13} strokeWidth={2} />
+                          </button>
                         </div>
 
                         <div className="flex flex-col">

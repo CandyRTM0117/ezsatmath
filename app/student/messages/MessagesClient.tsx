@@ -35,12 +35,11 @@ export default function MessagesClient({
   const [search, setSearch] = useState('')
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [replyTo, setReplyTo] = useState<Message | null>(null)
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
-  const visibleMessages = messages.filter(m => !deletedIds.has(m.id))
+  const visibleMessages = messages
 
   function getThread(teacher: Teacher) {
     return visibleMessages.filter(m =>
@@ -309,7 +308,10 @@ export default function MessagesClient({
                   </button>
                   {isMine && (
                     <button
-                      onClick={() => setDeletedIds(prev => new Set(prev).add(m.id))}
+                      onClick={async () => {
+                        await supabase.from('messages').delete().eq('id', m.id)
+                        setMessages(prev => prev.filter(x => x.id !== m.id))
+                      }}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/5 transition-all"
                       title="Delete"
                     >
