@@ -46,11 +46,17 @@ export default function AnalyticsClient({
     const day = a.attempted_at.split('T')[0]
     dayMap[day] = (dayMap[day] ?? 0) + 1
   }
-  const days: { date: string; count: number }[] = []
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i)
-    const key = d.toISOString().split('T')[0]
-    days.push({ date: key, count: dayMap[key] ?? 0 })
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const todayNum = now.getDate()
+  const days: { date: string; count: number; day: number; isToday: boolean }[] = []
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d)
+    const key = date.toISOString().split('T')[0]
+    days.push({ date: key, count: dayMap[key] ?? 0, day: d, isToday: d === todayNum })
   }
   const maxCount = Math.max(...days.map(d => d.count), 1)
 
@@ -111,10 +117,10 @@ export default function AnalyticsClient({
         }}
       >
         <div className="flex items-center justify-between mb-7">
-          <h2 className="font-extrabold text-white text-lg tracking-tight">Problems Tried — Last 30 Days</h2>
+          <h2 className="font-extrabold text-white text-lg tracking-tight">Problems Tried — {monthName}</h2>
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Daily activity</span>
         </div>
-        <div className="flex items-end gap-0.5 h-40">
+        <div className="flex items-end gap-px h-40">
           {days.map(d => (
             <div key={d.date} className="flex-1 flex flex-col items-center group relative">
               <div
@@ -122,10 +128,12 @@ export default function AnalyticsClient({
                 style={{
                   height: `${(d.count / maxCount) * 100}%`,
                   minHeight: d.count > 0 ? '4px' : '0',
-                  background: d.count > 0
-                    ? 'linear-gradient(180deg, #60A5FA, #3B82F6)'
-                    : 'rgba(255,255,255,0.04)',
-                  boxShadow: d.count > 0 ? '0 0 12px rgba(96,165,250,0.4)' : 'none',
+                  background: d.isToday
+                    ? 'linear-gradient(180deg, #A78BFA, #7C3AED)'
+                    : d.count > 0
+                      ? 'linear-gradient(180deg, #60A5FA, #3B82F6)'
+                      : 'rgba(255,255,255,0.04)',
+                  boxShadow: d.count > 0 ? (d.isToday ? '0 0 12px rgba(167,139,250,0.5)' : '0 0 12px rgba(96,165,250,0.4)') : 'none',
                 }}
               />
               {d.count > 0 && (
@@ -139,13 +147,16 @@ export default function AnalyticsClient({
             </div>
           ))}
         </div>
-        {/* X-axis day labels */}
-        <div className="flex gap-0.5 mt-1">
-          {days.map((d, i) => (
+        {/* X-axis: all days of the month */}
+        <div className="flex gap-px mt-1">
+          {days.map(d => (
             <div key={d.date} className="flex-1 text-center">
-              {(i === 0 || i % 5 === 4 || i === 29) && (
-                <span className="text-[8px] text-slate-600 font-medium">{d.date.slice(8)}</span>
-              )}
+              <span
+                className="text-[7px] font-medium"
+                style={{ color: d.isToday ? '#A78BFA' : 'rgba(100,116,139,0.7)' }}
+              >
+                {d.day}
+              </span>
             </div>
           ))}
         </div>

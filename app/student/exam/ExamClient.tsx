@@ -239,11 +239,11 @@ export default function ExamClient({
   /* ---- FULL DETAIL VIEW ---- */
   if (phase === 'idle' && fullDetail) {
     const { loading, e1, e2, answers1, answers2 } = fullDetail
-    const pct1 = e1.total ? Math.round(e1.score / e1.total * 100) : 0
-    const pct2 = e2 && e2.total ? Math.round(e2.score / e2.total * 100) : null
+    const PART_TOTAL = 22
+    const pct1 = Math.round(e1.score / PART_TOTAL * 100)
+    const pct2 = e2 ? Math.round(e2.score / PART_TOTAL * 100) : null
     const totalScore = e1.score + (e2?.score ?? 0)
-    const totalQ = e1.total + (e2?.total ?? 0)
-    const combinedSat = toSatScore(totalScore, totalQ)
+    const combinedSat = toSatScore(totalScore, e2 ? PART_TOTAL * 2 : PART_TOTAL)
     const satColor = combinedSat >= 650 ? '#34D399' : combinedSat >= 450 ? '#FBBF24' : '#F87171'
     const color1 = pct1 >= 80 ? '#34D399' : pct1 >= 50 ? '#FBBF24' : '#F87171'
     const color2 = pct2 != null ? (pct2 >= 80 ? '#34D399' : pct2 >= 50 ? '#FBBF24' : '#F87171') : null
@@ -260,7 +260,7 @@ export default function ExamClient({
           </button>
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
-              Exam Details
+              Exam Results
             </h1>
             <p className="text-slate-400 mt-1">
               {new Date(e1.taken_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
@@ -278,9 +278,9 @@ export default function ExamClient({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
               {[
                 { label: 'SAT Score', value: combinedSat, from: satColor, to: satColor + '99' },
-                { label: 'Total Correct', value: `${totalScore}/${totalQ}`, from: '#60A5FA', to: '#3B82F6' },
-                { label: 'Part 1', value: `${e1.score}/${e1.total} (${pct1}%)`, from: color1, to: color1 + '99' },
-                { label: 'Part 2', value: e2 && pct2 != null ? `${e2.score}/${e2.total} (${pct2}%)` : '—', from: color2 ?? '#94A3B8', to: (color2 ?? '#94A3B8') + '99' },
+                { label: 'Total Correct', value: `${totalScore}/${e2 ? PART_TOTAL * 2 : PART_TOTAL}`, from: '#60A5FA', to: '#3B82F6' },
+                { label: 'Part 1', value: `${e1.score}/${PART_TOTAL} (${pct1}%)`, from: color1, to: color1 + '99' },
+                { label: 'Part 2', value: e2 && pct2 != null ? `${e2.score}/${PART_TOTAL} (${pct2}%)` : '—', from: color2 ?? '#94A3B8', to: (color2 ?? '#94A3B8') + '99' },
               ].map(s => (
                 <div
                   key={s.label}
@@ -301,6 +301,7 @@ export default function ExamClient({
             {/* Per-part question lists */}
             {([{ label: 'Part 1', record: e1, answers: answers1 }, { label: 'Part 2', record: e2, answers: answers2 }] as const).map(({ label, record, answers }) => {
               if (!record || answers.length === 0) return null
+              const partPct = Math.round(record.score / PART_TOTAL * 100)
               return (
                 <div
                   key={label}
@@ -308,9 +309,9 @@ export default function ExamClient({
                   style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
                 >
                   <div className="px-7 py-5 border-b border-white/8 flex items-center justify-between">
-                    <h2 className="font-extrabold text-white text-lg tracking-tight">{label} — {record.score}/{record.total}</h2>
+                    <h2 className="font-extrabold text-white text-lg tracking-tight">{label} — {record.score}/{PART_TOTAL}</h2>
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                      {record.total ? Math.round(record.score / record.total * 100) : 0}% correct
+                      {partPct}% correct
                     </span>
                   </div>
                   <div className="divide-y divide-white/5">
@@ -343,13 +344,11 @@ export default function ExamClient({
                                 {a.user_answer || '—'}
                               </span>
                             </span>
-                            {!a.is_correct && (
-                              <span>
-                                Correct: <span className="font-bold text-slate-200">{prob?.solution ?? '—'}</span>
-                              </span>
-                            )}
+                            <span>
+                              Correct answer: <span className="font-bold text-slate-200">{prob?.solution ?? '—'}</span>
+                            </span>
                           </div>
-                          {(prob?.explanation || !a.is_correct) && (
+                          {prob?.explanation && (
                             <div className="ml-9">
                               <button
                                 onClick={() => toggleExplanation(a.id)}
@@ -358,16 +357,13 @@ export default function ExamClient({
                                 {expanded ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}
                                 {expanded ? 'Hide' : 'Show'} Solution
                               </button>
-                              {expanded && prob?.explanation && (
+                              {expanded && (
                                 <div
                                   className="mt-2 p-4 rounded-xl text-sm text-amber-100/90 leading-relaxed"
                                   style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}
                                 >
                                   {prob.explanation}
                                 </div>
-                              )}
-                              {expanded && !prob?.explanation && (
-                                <p className="mt-2 text-xs text-slate-500 italic">No explanation available.</p>
                               )}
                             </div>
                           )}
@@ -522,33 +518,25 @@ export default function ExamClient({
 
   /* ---- PART 1 DONE ---- */
   if (phase === 'part1_done' && part1Result) {
-    const highScore = part1Result.score >= PART1_THRESHOLD
-    const satColor = part1Result.satScore >= 650 ? '#34D399' : part1Result.satScore >= 450 ? '#FBBF24' : '#F87171'
     return (
       <div className="max-w-xl">
         <div className="mb-8">
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">Part 1 Complete</h1>
+          <p className="text-slate-400 mt-2">Results will be shown after Part 2.</p>
         </div>
         <div
           className="rounded-2xl border border-white/10 overflow-hidden mb-6"
           style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))', boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}
         >
-          <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${satColor}, ${satColor}55)` }} />
+          <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #60A5FA, #6366F1)' }} />
           <div className="p-8 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">Part 1 Score</p>
-            <p className="text-6xl font-extrabold mb-1" style={{ color: satColor }}>{part1Result.score}/{part1Result.total}</p>
-            <p className="text-slate-500 text-sm mb-4">{Math.round(part1Result.score / part1Result.total * 100)}% accuracy</p>
-            <div
-              className="rounded-xl p-4 mb-6 text-sm"
-              style={{ background: highScore ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${highScore ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.25)'}` }}
-            >
-              <p className="font-semibold" style={{ color: highScore ? '#34D399' : '#FBBF24' }}>
-                {highScore ? 'Great performance! Part 2 will be harder.' : 'Part 2 will have more medium questions to build your score.'}
-              </p>
+            <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-slate-400 mb-8">
+              <span className="inline-flex items-center gap-2"><FileText size={16} strokeWidth={1.75} className="text-blue-400" /> 22 questions</span>
+              <span className="inline-flex items-center gap-2"><Timer size={16} strokeWidth={1.75} className="text-blue-400" /> 35 min</span>
             </div>
             <button
               onClick={startPart2}
-              className="w-full py-4 font-bold text-white rounded-full text-base transition-all hover:scale-[1.02]"
+              className="w-full py-4 font-bold text-white rounded-full text-base transition-all hover:scale-[1.02] active:scale-95"
               style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 12px 30px rgba(59,130,246,0.4)' }}
             >
               Start Part 2 <ArrowRight size={16} strokeWidth={2.5} className="inline ml-1" />
@@ -561,8 +549,9 @@ export default function ExamClient({
 
   /* ---- FINAL RESULTS ---- */
   if (phase === 'final' && part1Result && part2Result) {
+    const PART_TOTAL = 22
     const totalScore = part1Result.score + part2Result.score
-    const totalQuestions = part1Result.total + part2Result.total
+    const totalQuestions = PART_TOTAL * 2
     const combinedSat = toSatScore(totalScore, totalQuestions)
     const satColor = combinedSat >= 650 ? '#34D399' : combinedSat >= 450 ? '#FBBF24' : '#F87171'
 
@@ -602,12 +591,12 @@ export default function ExamClient({
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
-                <p className="font-extrabold text-white text-xl">{part1Result.score}/{part1Result.total}</p>
+                <p className="font-extrabold text-white text-xl">{part1Result.score}/{PART_TOTAL}</p>
                 <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Part 1</p>
               </div>
               <div className="w-px h-8 bg-white/10" />
               <div className="text-center">
-                <p className="font-extrabold text-white text-xl">{part2Result.score}/{part2Result.total}</p>
+                <p className="font-extrabold text-white text-xl">{part2Result.score}/{PART_TOTAL}</p>
                 <p className="text-slate-500 text-xs mt-0.5 uppercase tracking-widest">Part 2</p>
               </div>
             </div>
