@@ -204,7 +204,7 @@ export default function MessagesClient({
                             <span className="font-bold text-white text-sm truncate">{displayName(t)}</span>
                             {lastMsg && (
                               <span className="text-[10px] text-slate-500 shrink-0 ml-2">
-                                {new Date(lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(lastMsg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             )}
                           </div>
@@ -346,7 +346,7 @@ export default function MessagesClient({
                   {/* Time + seen */}
                   <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
                     <p className="text-[10px] text-slate-600">
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     {isMine && (
                       seen
@@ -400,13 +400,14 @@ export default function MessagesClient({
             ))}
           </select>
         )}
-        <div className="flex gap-2">
-          <input
+        <div className="flex gap-2 items-end">
+          <textarea
             value={content}
             onChange={e => setContent(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
             placeholder="Type a message…"
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm text-slate-200 focus:outline-none transition-all"
+            rows={3}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm text-slate-200 focus:outline-none transition-all resize-none min-h-[80px]"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
             onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
             onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
@@ -414,7 +415,7 @@ export default function MessagesClient({
           <button
             onClick={sendMessage}
             disabled={!content.trim() || sending}
-            className="px-4 py-2.5 rounded-xl font-bold text-white transition-all disabled:opacity-40 hover:scale-105 active:scale-95"
+            className="px-4 py-3 rounded-xl font-bold text-white transition-all disabled:opacity-40 hover:scale-105 active:scale-95"
             style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
           >
             <Send size={16} strokeWidth={2} />

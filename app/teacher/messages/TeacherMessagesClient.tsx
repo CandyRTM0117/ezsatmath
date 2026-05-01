@@ -137,7 +137,7 @@ export default function TeacherMessagesClient({
                             : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#E2E8F0' }}>
                           {m.content}
                         </div>
-                        <p className="text-[10px] text-slate-600 mt-1 px-1">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[10px] text-slate-600 mt-1 px-1">{new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                     </div>
                   )

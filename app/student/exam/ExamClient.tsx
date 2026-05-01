@@ -413,12 +413,6 @@ export default function ExamClient({
                 <span className="inline-flex items-center gap-2"><FileText size={16} strokeWidth={1.75} className="text-blue-400" /> 2 parts · 22 questions each</span>
                 <span className="inline-flex items-center gap-2"><Timer size={16} strokeWidth={1.75} className="text-blue-400" /> 35 min per part</span>
               </div>
-              <div className="rounded-xl p-4 mb-5 text-sm space-y-1" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="text-slate-300 font-semibold">How it works</p>
-                <p className="text-slate-400">Part 1: 10 easy + 12 medium questions</p>
-                <p className="text-slate-400">Part 2: adaptive — harder if you score well in Part 1</p>
-              </div>
-
               {!isSubscribed && (
                 <p className="text-xs text-slate-500 mb-4">
                   Free plan: {examCount}/{FREE_EXAM_LIMIT} exams used
