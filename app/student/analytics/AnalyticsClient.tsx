@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Lock, X, Check } from 'lucide-react'
+import { Lock, X, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface ExamRecord {
@@ -20,6 +20,12 @@ interface ExamAnswer {
   problem?: { question: string; solution: string }
 }
 
+interface ExamSession {
+  date: string
+  part1?: ExamRecord
+  part2?: ExamRecord
+}
+
 interface Props {
   attempts: { is_correct: boolean; attempted_at: string }[]
   exams: ExamRecord[]
@@ -30,13 +36,42 @@ interface Props {
   isSubscribed: boolean
 }
 
+function groupIntoSessions(exams: ExamRecord[]): ExamSession[] {
+  const sorted = [...exams].sort((a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime())
+  const used = new Set<string>()
+  const sessions: ExamSession[] = []
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (used.has(sorted[i].id)) continue
+    const e = sorted[i]
+    if (e.part === 1) {
+      const next = sorted.find((x, j) => j > i && x.part === 2 && !used.has(x.id))
+      if (next) {
+        used.add(e.id); used.add(next.id)
+        sessions.push({ date: e.taken_at, part1: e, part2: next })
+      } else {
+        used.add(e.id)
+        sessions.push({ date: e.taken_at, part1: e })
+      }
+    } else {
+      used.add(e.id)
+      sessions.push({ date: e.taken_at, part2: e })
+    }
+  }
+
+  return sessions.reverse()
+}
+
 export default function AnalyticsClient({
   attempts, exams, totalAttempts, correctAttempts, totalExamAnswers, correctExamAnswers, isSubscribed,
 }: Props) {
-  const [examDetail, setExamDetail] = useState<ExamRecord | null>(null)
-  const [examAnswers, setExamAnswers] = useState<ExamAnswer[]>([])
-  const [loadingDetail, setLoadingDetail] = useState(false)
+  const [expandedSession, setExpandedSession] = useState<number | null>(null)
+  const [sessionAnswers, setSessionAnswers] = useState<Record<string, ExamAnswer[]>>({})
+  const [loadingId, setLoadingId] = useState<string | null>(null)
   const supabase = createClient()
+
+  const sessions = groupIntoSessions(exams)
+  const sessionCount = sessions.length
 
   const problemAccuracy = totalAttempts ? Math.round(correctAttempts / totalAttempts * 100) : 0
   const examAccuracy    = totalExamAnswers ? Math.round(correctExamAnswers / totalExamAnswers * 100) : 0
@@ -61,27 +96,68 @@ export default function AnalyticsClient({
   const maxCount = Math.max(...days.map(d => d.count), 1)
 
   const STATS = [
-    { label: 'Problems Tried',  value: totalAttempts,         from: '#60A5FA', to: '#3B82F6' },
-    { label: 'Problems Solved', value: correctAttempts,        from: '#34D399', to: '#10B981' },
-    { label: 'Problem Accuracy',value: `${problemAccuracy}%`, from: '#A78BFA', to: '#7C3AED' },
-    { label: 'Exams Taken',     value: exams.length,          from: '#FBBF24', to: '#F59E0B' },
-    { label: 'Exam Accuracy',   value: `${examAccuracy}%`,    from: '#F87171', to: '#EF4444' },
+    { label: 'Problems Tried',   value: totalAttempts,          from: '#60A5FA', to: '#3B82F6' },
+    { label: 'Problems Solved',  value: correctAttempts,         from: '#34D399', to: '#10B981' },
+    { label: 'Problem Accuracy', value: `${problemAccuracy}%`,  from: '#A78BFA', to: '#7C3AED' },
+    { label: 'Exams Taken',      value: sessionCount,            from: '#FBBF24', to: '#F59E0B' },
+    { label: 'Exam Accuracy',    value: `${examAccuracy}%`,     from: '#F87171', to: '#EF4444' },
   ]
 
-  async function openExamDetail(exam: ExamRecord) {
-    setExamDetail(exam)
-    setLoadingDetail(true)
+  async function loadAnswers(examId: string) {
+    if (sessionAnswers[examId]) return
+    setLoadingId(examId)
     const { data } = await supabase
       .from('exam_answers')
       .select('id, user_answer, is_correct, problem:problems(question, solution)')
-      .eq('exam_id', exam.id)
-    setExamAnswers((data ?? []) as unknown as ExamAnswer[])
-    setLoadingDetail(false)
+      .eq('exam_id', examId)
+    setSessionAnswers(prev => ({ ...prev, [examId]: (data ?? []) as unknown as ExamAnswer[] }))
+    setLoadingId(null)
+  }
+
+  async function toggleSession(idx: number, session: ExamSession) {
+    if (expandedSession === idx) { setExpandedSession(null); return }
+    setExpandedSession(idx)
+    if (session.part1) await loadAnswers(session.part1.id)
+    if (session.part2) await loadAnswers(session.part2.id)
+  }
+
+  function AnswerList({ examId }: { examId: string }) {
+    const answers = sessionAnswers[examId] ?? []
+    if (loadingId === examId) return <div className="text-slate-400 text-xs py-3">Loading…</div>
+    if (answers.length === 0) return null
+    return (
+      <div className="space-y-1.5 mt-2">
+        {answers.map((a, i) => (
+          <div
+            key={a.id}
+            className="p-3 rounded-xl"
+            style={a.is_correct
+              ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }
+              : { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+          >
+            <div className="flex items-center gap-2 mb-0.5">
+              <span
+                className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+                style={a.is_correct
+                  ? { background: 'rgba(16,185,129,0.2)', color: '#34D399' }
+                  : { background: 'rgba(239,68,68,0.2)', color: '#F87171' }}
+              >
+                {a.is_correct ? <Check size={9} strokeWidth={2.5} /> : <X size={9} strokeWidth={2.5} />}
+              </span>
+              <p className="text-xs font-semibold text-slate-200">Q{i + 1}: {(a.problem as any)?.question?.slice(0, 80)}…</p>
+            </div>
+            <p className="text-xs text-slate-400 ml-6">
+              Your answer: <span className={a.is_correct ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>{a.user_answer || '—'}</span>
+              {!a.is_correct && <> · Correct: <span className="text-slate-300 font-semibold">{(a.problem as any)?.solution}</span></>}
+            </p>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   const premiumContent = (
     <>
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {STATS.map(s => (
           <div
@@ -108,7 +184,6 @@ export default function AnalyticsClient({
         ))}
       </div>
 
-      {/* Activity Chart */}
       <div
         className="rounded-2xl border border-white/10 p-7 mb-8"
         style={{
@@ -147,7 +222,6 @@ export default function AnalyticsClient({
             </div>
           ))}
         </div>
-        {/* X-axis: all days of the month */}
         <div className="flex gap-px mt-1">
           {days.map(d => (
             <div key={d.date} className="flex-1 text-center">
@@ -172,67 +246,6 @@ export default function AnalyticsClient({
         </h1>
         <p className="text-slate-400 mt-2 text-lg">Your performance at a glance</p>
       </div>
-
-      {/* Exam detail modal */}
-      {examDetail && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 py-8 px-4 fade-in" onClick={() => setExamDetail(null)}>
-          <div
-            className="rounded-2xl w-full max-w-2xl p-7 zoom-in-95 max-h-[90vh] flex flex-col"
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: '#0F172A',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
-            }}
-          >
-            <div className="flex items-start justify-between mb-5 shrink-0">
-              <div>
-                <h2 className="text-xl font-extrabold text-white tracking-tight">
-                  Part {examDetail.part} Breakdown
-                </h2>
-                <p className="text-sm text-slate-400 mt-1">
-                  {examDetail.score}/{examDetail.total} · {new Date(examDetail.taken_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-              <button onClick={() => setExamDetail(null)} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all ml-4">
-                <X size={18} strokeWidth={1.75} />
-              </button>
-            </div>
-            {loadingDetail ? (
-              <div className="flex items-center justify-center py-10 text-slate-400 text-sm">Loading…</div>
-            ) : (
-              <div className="overflow-y-auto space-y-2 flex-1 pr-1">
-                {examAnswers.map((a, i) => (
-                  <div
-                    key={a.id}
-                    className="p-4 rounded-xl"
-                    style={a.is_correct
-                      ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }
-                      : { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                        style={a.is_correct
-                          ? { background: 'rgba(16,185,129,0.2)', color: '#34D399' }
-                          : { background: 'rgba(239,68,68,0.2)', color: '#F87171' }}
-                      >
-                        {a.is_correct ? <Check size={11} strokeWidth={2.5} /> : <X size={11} strokeWidth={2.5} />}
-                      </span>
-                      <p className="text-sm font-semibold text-slate-200">Q{i + 1}: {(a.problem as any)?.question?.slice(0, 80)}…</p>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1 ml-7">
-                      Your answer: <span className={a.is_correct ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>{a.user_answer || '—'}</span>
-                      {!a.is_correct && <> · Correct: <span className="text-slate-300 font-semibold">{(a.problem as any)?.solution}</span></>}
-                    </p>
-                  </div>
-                ))}
-                {examAnswers.length === 0 && <p className="text-slate-500 text-sm text-center py-8">No answers recorded.</p>}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {isSubscribed ? (
         premiumContent
@@ -272,7 +285,7 @@ export default function AnalyticsClient({
         </div>
       )}
 
-      {/* Exam history — visible to all users */}
+      {/* Exam History */}
       <div
         className="rounded-2xl border border-white/10 overflow-hidden"
         style={{
@@ -283,34 +296,69 @@ export default function AnalyticsClient({
         <div className="px-7 py-5 border-b border-white/8">
           <h2 className="font-extrabold text-white text-lg tracking-tight">Exam History</h2>
         </div>
-        {exams.length === 0 ? (
+
+        {sessions.length === 0 ? (
           <div className="px-7 py-14 text-center text-slate-500 text-sm">No exams taken yet</div>
         ) : (
           <div className="divide-y divide-white/5">
-            {exams.map((e) => {
-              const pct = Math.round(e.score / e.total * 100)
+            {sessions.map((session, idx) => {
+              const totalScore = (session.part1?.score ?? 0) + (session.part2?.score ?? 0)
+              const totalTotal = (session.part1?.total ?? 0) + (session.part2?.total ?? 0)
+              const pct = totalTotal ? Math.round(totalScore / totalTotal * 100) : 0
               const color = pct >= 80 ? '#34D399' : pct >= 50 ? '#FBBF24' : '#F87171'
+              const isOpen = expandedSession === idx
+              const dateStr = new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
               return (
-                <div key={e.id} className="px-7 py-4 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="font-semibold text-slate-300">
-                        Part {e.part} · {new Date(e.taken_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                      <span className="font-extrabold tabular-nums" style={{ color }}>
-                        {e.score}/{e.total} ({pct}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                      <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color, boxShadow: `0 0 12px ${color}66` }} />
-                    </div>
-                  </div>
+                <div key={idx}>
+                  {/* Session header row */}
                   <button
-                    onClick={() => openExamDetail(e)}
-                    className="text-blue-400 hover:text-blue-300 text-xs font-semibold transition-colors shrink-0"
+                    className="w-full px-7 py-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors text-left"
+                    onClick={() => toggleSession(idx, session)}
                   >
-                    Details
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="font-semibold text-slate-300">
+                          Full Test · {dateStr}
+                        </span>
+                        <span className="font-extrabold tabular-nums" style={{ color }}>
+                          {totalScore}/{totalTotal} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                        <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color, boxShadow: `0 0 12px ${color}66` }} />
+                      </div>
+                    </div>
+                    {isOpen
+                      ? <ChevronUp size={16} strokeWidth={2} className="text-slate-400 shrink-0" />
+                      : <ChevronDown size={16} strokeWidth={2} className="text-slate-400 shrink-0" />
+                    }
                   </button>
+
+                  {/* Expanded: Part 1 + Part 2 breakdown */}
+                  {isOpen && (
+                    <div className="px-7 pb-5 space-y-4" style={{ background: 'rgba(255,255,255,0.015)' }}>
+                      {[session.part1, session.part2].map((part, pi) => {
+                        if (!part) return null
+                        const pp = Math.round(part.score / part.total * 100)
+                        const pc = pp >= 80 ? '#34D399' : pp >= 50 ? '#FBBF24' : '#F87171'
+                        return (
+                          <div key={part.id} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Part {part.part}</span>
+                              <span className="text-sm font-extrabold tabular-nums" style={{ color: pc }}>
+                                {part.score}/{part.total} ({pp}%)
+                              </span>
+                            </div>
+                            <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden mb-3">
+                              <div className="h-1.5 rounded-full" style={{ width: `${pp}%`, background: pc }} />
+                            </div>
+                            <AnswerList examId={part.id} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })}

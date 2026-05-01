@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Zap, FileText, Target, ClipboardList, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'

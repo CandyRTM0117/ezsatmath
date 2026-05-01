@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import ChangePasswordForm from '@/app/student/dashboard/ChangePasswordForm'
 import ThemeToggle from '@/components/ui/ThemeToggle'

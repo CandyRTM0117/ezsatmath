@@ -711,7 +711,7 @@ export default function ExamClient({
                 return (
                   <label
                     key={c.id}
-                    className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200"
+                    className="flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all duration-200"
                     style={isSelected
                       ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.5)' }
                       : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -720,8 +720,8 @@ export default function ExamClient({
                       checked={isSelected}
                       onChange={() => setAnswers(a => ({ ...a, [current]: c.label }))}
                       className="accent-blue-500 mt-0.5 shrink-0" />
-                    <span className="text-sm font-bold text-slate-400 w-5 shrink-0">{c.label}.</span>
-                    <span className="text-sm text-slate-200">{c.choice_text}</span>
+                    <span className="text-base font-bold text-slate-400 w-6 shrink-0">{c.label}.</span>
+                    <span className="text-base text-slate-200">{c.choice_text}</span>
                   </label>
                 )
               })}
