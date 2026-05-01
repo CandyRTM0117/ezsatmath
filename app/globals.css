@@ -7,6 +7,23 @@
   --sidebar-bg-end: #0F172A;
   --text-primary: #E2E8F0;
   --text-muted: #94A3B8;
+  --card-bg: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  --card-border: rgba(255,255,255,0.1);
+  --input-bg: rgba(255,255,255,0.04);
+  --input-border: rgba(255,255,255,0.1);
+  --input-color: #E2E8F0;
+  --chat-bg: #0B1224;
+  --chat-header-bg: rgba(255,255,255,0.03);
+  --chat-header-border: rgba(255,255,255,0.08);
+  --bubble-other-bg: rgba(255,255,255,0.08);
+  --bubble-other-border: rgba(255,255,255,0.1);
+  --bubble-other-color: #E2E8F0;
+  --divider-color: rgba(255,255,255,0.05);
+  --table-header-bg: rgba(255,255,255,0.03);
+  --table-header-border: rgba(255,255,255,0.08);
+  --table-row-hover: rgba(255,255,255,0.02);
+  --input-textarea-bg: rgba(255,255,255,0.08);
+  --input-textarea-border: rgba(255,255,255,0.18);
 }
 
 html.light {
@@ -16,6 +33,23 @@ html.light {
   --sidebar-bg-end: #0F172A;
   --text-primary: #0F172A;
   --text-muted: #475569;
+  --card-bg: #FFFFFF;
+  --card-border: rgba(0,0,0,0.1);
+  --input-bg: rgba(0,0,0,0.05);
+  --input-border: rgba(0,0,0,0.15);
+  --input-color: #0F172A;
+  --chat-bg: #E2EBF5;
+  --chat-header-bg: rgba(0,0,0,0.03);
+  --chat-header-border: rgba(0,0,0,0.08);
+  --bubble-other-bg: #FFFFFF;
+  --bubble-other-border: rgba(0,0,0,0.08);
+  --bubble-other-color: #0F172A;
+  --divider-color: rgba(0,0,0,0.06);
+  --table-header-bg: rgba(0,0,0,0.025);
+  --table-header-border: rgba(0,0,0,0.08);
+  --table-row-hover: rgba(0,0,0,0.02);
+  --input-textarea-bg: rgba(0,0,0,0.05);
+  --input-textarea-border: rgba(0,0,0,0.15);
 }
 
 * {
@@ -111,4 +145,62 @@ html {
 
 input::placeholder, textarea::placeholder {
   color: rgba(148, 163, 184, 0.5);
+}
+
+/* ── Light mode overrides ────────────────────────────────────────────────── */
+
+/* Fix invisible gradient headings (from-white bg-clip-text text-transparent) */
+html.light .app-main .text-transparent {
+  -webkit-text-fill-color: var(--text-primary);
+  background-image: none;
+}
+
+/* Card/container backgrounds */
+html.light .border-white\/10 { border-color: rgba(0,0,0,0.1); }
+html.light .border-white\/8  { border-color: rgba(0,0,0,0.08); }
+html.light .border-white\/5  { border-color: rgba(0,0,0,0.06); }
+html.light .divide-white\/5  > * + * { border-color: rgba(0,0,0,0.06); }
+
+/* Table row hover in light mode */
+html.light tr.hover\:bg-white\/\[0\.02\]:hover { background: rgba(0,0,0,0.02); }
+
+/* Scrollbar light */
+html.light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); }
+html.light ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
+
+/* Input placeholder light */
+html.light input::placeholder, html.light textarea::placeholder {
+  color: rgba(0,0,0,0.3);
+}
+
+/* Text-gradient utility in light mode */
+html.light .text-gradient {
+  background: linear-gradient(135deg, #0F172A, #1D4ED8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Main content text — non-interactive elements */
+html.light .app-main .text-white:not(button):not(a):not([role="button"]) {
+  color: var(--text-primary);
+}
+html.light .app-main .text-slate-200:not(button):not(a):not([role="button"]) {
+  color: #334155;
+}
+html.light .app-main .text-slate-300:not(button):not(a):not([role="button"]) {
+  color: #475569;
+}
+html.light .app-main .text-slate-400:not(button):not(a):not([role="button"]) {
+  color: #64748B;
+}
+html.light .app-main .text-slate-500:not(button):not(a):not([role="button"]) {
+  color: #94A3B8;
+}
+
+/* Backdrop blur for entire app when modal is open */
+body.modal-open > div:first-child {
+  filter: blur(6px);
+  transition: filter 200ms ease;
+  pointer-events: none;
 }

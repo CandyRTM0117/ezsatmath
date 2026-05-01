@@ -154,7 +154,7 @@ export default function MessagesClient({
             No teachers available yet.
           </div>
         ) : (
-          <div className="max-w-lg">
+          <div>
             <div className="relative mb-4">
               <Search size={16} strokeWidth={1.75} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
@@ -162,10 +162,10 @@ export default function MessagesClient({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search conversations…"
-                className="w-full pl-11 pr-4 py-3 rounded-xl text-sm text-slate-200 focus:outline-none transition-all"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+                className="w-full pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
+                style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
                 onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+                onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
               />
             </div>
 
@@ -241,12 +241,12 @@ export default function MessagesClient({
   return (
     <div
       className="flex flex-col rounded-2xl overflow-hidden border border-white/10"
-      style={{ height: 'calc(100svh - 7rem)', background: '#0B1224' }}
+      style={{ height: 'calc(100svh - 7rem)', background: 'var(--chat-bg)' }}
     >
       {/* Header */}
       <div
         className="px-3 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--chat-header-bg)', borderBottom: '1px solid var(--chat-header-border)' }}
       >
         <button
           onClick={backToList}
@@ -344,7 +344,7 @@ export default function MessagesClient({
                     className="px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
                     style={isMine
                       ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white' }
-                      : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#E2E8F0' }}
+                      : { background: 'var(--bubble-other-bg)', border: '1px solid var(--bubble-other-border)', color: 'var(--bubble-other-color)' }}
                   >
                     {bodyContent}
                   </div>
@@ -391,13 +391,13 @@ export default function MessagesClient({
       )}
 
       {/* Input */}
-      <div className="px-6 py-4 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+      <div className="px-6 py-4 shrink-0" style={{ borderTop: '1px solid var(--chat-header-border)' }}>
         {problems.length > 0 && (
           <select
             value={selectedProblemId}
             onChange={e => setSelectedProblemId(e.target.value)}
             className="w-full px-3 py-2 rounded-lg text-xs focus:outline-none transition-all mb-3"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#94A3B8' }}
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
           >
             <option value="">Reference a problem (optional)</option>
             {problems.map(p => (
@@ -412,10 +412,10 @@ export default function MessagesClient({
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
             placeholder="Type a message…"
             rows={3}
-            className="flex-1 px-4 py-3 rounded-xl text-sm text-slate-200 focus:outline-none transition-all resize-none min-h-[80px]"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)' }}
+            className="flex-1 px-4 py-3 rounded-xl text-sm focus:outline-none transition-all resize-none min-h-[80px]"
+            style={{ background: 'var(--input-textarea-bg)', border: '1px solid var(--input-textarea-border)', color: 'var(--input-color)' }}
             onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.6)')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.18)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--input-textarea-border)')}
           />
           <button
             onClick={sendMessage}

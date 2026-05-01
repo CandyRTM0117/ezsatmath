@@ -186,12 +186,12 @@ export default function AdminMessagesClient({
   const chatPanel = selectedUser ? (
     <div
       className="flex-1 flex flex-col rounded-2xl border border-white/10 overflow-hidden"
-      style={{ background: '#0B1224', height: 'calc(100svh - 7rem)' }}
+      style={{ background: 'var(--chat-bg)', height: 'calc(100svh - 7rem)' }}
     >
       {/* Header */}
       <div
         className="px-3 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--chat-header-bg)', borderBottom: '1px solid var(--chat-header-border)' }}
       >
         <button
           onClick={backToList}
@@ -271,7 +271,7 @@ export default function AdminMessagesClient({
                     className="px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
                     style={isMine
                       ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white' }
-                      : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#E2E8F0' }}
+                      : { background: 'var(--bubble-other-bg)', border: '1px solid var(--bubble-other-border)', color: 'var(--bubble-other-color)' }}
                   >
                     {bodyContent}
                   </div>
@@ -319,9 +319,9 @@ export default function AdminMessagesClient({
             placeholder="Type a reply…"
             rows={3}
             className="flex-1 px-4 py-3 rounded-xl text-sm text-slate-200 focus:outline-none transition-all resize-none min-h-[80px]"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)' }}
+            style={{ background: 'var(--input-textarea-bg)', border: '1px solid var(--input-textarea-border)', color: 'var(--input-color)' }}
             onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.6)')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.18)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--input-textarea-border)')}
           />
           <button
             onClick={sendMessage}

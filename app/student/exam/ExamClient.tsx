@@ -394,7 +394,7 @@ export default function ExamClient({
           <p className="text-slate-400 mt-2 text-lg">Adaptive SAT practice exam</p>
         </div>
 
-        <div className="max-w-lg mb-10">
+        <div className="mb-10">
           <div
             className="rounded-2xl border border-white/10 overflow-hidden"
             style={{
@@ -440,7 +440,7 @@ export default function ExamClient({
         {/* Exam History */}
         {examHistory.length > 0 && (
           <div
-            className="rounded-2xl border border-white/10 overflow-hidden max-w-2xl"
+            className="rounded-2xl border border-white/10 overflow-hidden"
             style={{
               background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
               boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
@@ -519,7 +519,7 @@ export default function ExamClient({
   /* ---- PART 1 DONE ---- */
   if (phase === 'part1_done' && part1Result) {
     return (
-      <div className="max-w-xl">
+      <div>
         <div className="mb-8">
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">Part 1 Complete</h1>
           <p className="text-slate-400 mt-2">Results will be shown after Part 2.</p>
@@ -556,7 +556,7 @@ export default function ExamClient({
     const satColor = combinedSat >= 650 ? '#34D399' : combinedSat >= 450 ? '#FBBF24' : '#F87171'
 
     return (
-      <div className="max-w-2xl">
+      <div>
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
             Exam Results
@@ -657,7 +657,7 @@ export default function ExamClient({
   const partLabel = activePart === 1 ? 'Part 1' : 'Part 2'
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">SAT Practice — {partLabel}</h1>

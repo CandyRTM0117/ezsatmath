@@ -64,11 +64,13 @@ export default function ProblemsClient({
     setAnswer('')
     setResult(null)
     document.body.style.overflow = 'hidden'
+    document.body.classList.add('modal-open')
   }
 
   function closeProblem() {
     setSelected(null)
     document.body.style.overflow = ''
+    document.body.classList.remove('modal-open')
   }
 
   async function submit() {

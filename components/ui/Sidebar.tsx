@@ -18,6 +18,7 @@ import {
   Bookmark,
   MessageSquare,
   Loader2,
+  UserCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -50,6 +51,7 @@ const studentNav: NavItem[] = [
 const teacherNav: NavItem[] = [
   { href: '/teacher/problems',  label: 'Problems', Icon: FileText },
   { href: '/teacher/messages',  label: 'Messages', Icon: MessageSquare },
+  { href: '/teacher/account',   label: 'Account',  Icon: UserCircle },
 ]
 
 function getNav(role: SidebarProps['role']) {

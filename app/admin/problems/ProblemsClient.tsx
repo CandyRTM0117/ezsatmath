@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
@@ -63,6 +64,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     setForm(EMPTY_FORM)
     setError('')
     setShowForm(true)
+    document.body.classList.add('modal-open')
   }
 
   function openEdit(p: ProblemWithChoices) {
@@ -84,6 +86,12 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     })
     setError('')
     setShowForm(true)
+    document.body.classList.add('modal-open')
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    document.body.classList.remove('modal-open')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -158,7 +166,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     }
 
     await reload()
-    setShowForm(false)
+    closeForm()
     setLoading(false)
   }
 
@@ -205,8 +213,8 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
         </div>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto py-8 px-4 fade-in" onClick={() => setShowForm(false)}>
+      {showForm && createPortal(
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto py-8 px-4 fade-in" onClick={closeForm}>
           <div
             className="rounded-2xl w-full max-w-2xl p-7 zoom-in-95"
             onClick={e => e.stopPropagation()}
@@ -218,7 +226,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-extrabold text-white tracking-tight">{editProblem ? 'Edit Problem' : 'Add Problem'}</h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
+              <button onClick={closeForm} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all">
                 <X size={18} strokeWidth={1.75} />
               </button>
             </div>
@@ -343,7 +351,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={closeForm}
                   className="flex-1 py-2.5 rounded-full text-sm font-semibold text-slate-200 transition-all"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
@@ -354,7 +362,8 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div
