@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, Component, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, X, Check, CircleX, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
@@ -133,10 +134,11 @@ export default function TeacherProblemsClient({
         </div>
       )}
 
-      {selected && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8 fade-in">
+      {selected && createPortal(
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8 fade-in" onClick={() => { setSelected(null); setAnswer(''); setResult(null) }}>
           <ProblemErrorBoundary>
             <div className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden zoom-in-95 max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
               style={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 40px 80px rgba(0,0,0,0.6)' }}>
               <div className="flex-1 overflow-y-auto p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col">
                 <div className="flex items-center justify-between mb-6">
@@ -144,7 +146,7 @@ export default function TeacherProblemsClient({
                     <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={diffStyle(selected.difficulty)}>{selected.difficulty}</span>
                     {selected.category && <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.12)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.25)' }}>{selected.category}</span>}
                   </div>
-                  <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 ml-4 flex-shrink-0">
+                  <button onClick={() => { setSelected(null); setAnswer(''); setResult(null) }} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 ml-4 flex-shrink-0">
                     <X size={20} strokeWidth={1.75} />
                   </button>
                 </div>
@@ -169,7 +171,7 @@ export default function TeacherProblemsClient({
                         {!result.correct && <p className="text-sm text-slate-400 mt-1">Correct: <span className="font-semibold text-slate-200">{selected.solution}</span></p>}
                       </div>
                     </div>
-                    <button onClick={() => setSelected(null)} className="w-full py-3.5 rounded-full text-sm font-semibold text-slate-200 transition-all mt-auto"
+                    <button onClick={() => { setSelected(null); setAnswer(''); setResult(null) }} className="w-full py-3.5 rounded-full text-sm font-semibold text-slate-200 transition-all mt-auto"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}>Close</button>
                   </>
                 ) : (
@@ -204,7 +206,8 @@ export default function TeacherProblemsClient({
               </div>
             </div>
           </ProblemErrorBoundary>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

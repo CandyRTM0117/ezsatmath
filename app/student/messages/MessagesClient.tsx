@@ -297,7 +297,7 @@ export default function MessagesClient({
               <div className={`flex items-end gap-1.5 max-w-[82%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                 {/* Hover actions */}
                 <div
-                  className={`flex flex-col gap-1 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'} ${isMine ? 'items-end' : 'items-start'}`}
+                  className={`flex flex-col gap-1 ${isMine ? 'items-end' : 'items-start'}`}
                 >
                   <button
                     onClick={() => setReplyTo(m)}

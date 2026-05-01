@@ -14,11 +14,11 @@ export default function AppShell({ role, userName, userId, children }: AppShellP
   const pathname = usePathname()
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#0B1224' }}>
+    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--app-bg)' }}>
       <Sidebar role={role} userName={userName} userId={userId} />
 
-      <main className="relative flex-1 overflow-y-auto pt-16 px-4 pb-8 md:p-8 lg:p-12"
-        style={{ background: '#0B1224' }}>
+      <main className="relative flex-1 overflow-y-auto pt-20 px-4 pb-8 md:p-8 lg:p-12"
+        style={{ background: 'var(--app-bg)' }}>
         {/* Ambient background orbs for depth */}
         <div
           className="pointer-events-none absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full opacity-30"

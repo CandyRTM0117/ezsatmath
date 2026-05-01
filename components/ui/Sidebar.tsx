@@ -135,7 +135,7 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         ].join(' ')}
         style={{
-          background: 'linear-gradient(180deg, #0B1224 0%, #0F172A 100%)',
+          background: 'linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%)',
           borderRight: '1px solid rgba(255,255,255,0.06)',
         }}
       >

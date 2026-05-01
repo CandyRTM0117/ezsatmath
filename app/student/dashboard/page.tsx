@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Zap, FileText, Target, ClipboardList, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'
 import ChangePasswordForm from './ChangePasswordForm'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 const STAT_CONFIG = [
   { key: 'solvedToday',     label: 'Solved Today',     Icon: Zap,           from: '#60A5FA', to: '#3B82F6' },
@@ -168,6 +169,7 @@ export default async function DashboardPage() {
                   <span className="text-sm font-medium text-slate-200 truncate">{row.value}</span>
                 </div>
               ))}
+              <ThemeToggle />
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest w-16 shrink-0">Plan</span>
                 {profile?.is_subscribed ? (

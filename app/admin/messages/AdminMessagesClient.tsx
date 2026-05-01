@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Send, MessageSquare, Search, CornerUpLeft, Trash2, X } from 'lucide-react'
+import { Send, MessageSquare, ArrowLeft, Search, CornerUpLeft, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface User { id: string; name: string | null; email: string }
@@ -26,12 +26,12 @@ export default function AdminMessagesClient({
   messages: Message[]
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
-  const [selectedUser, setSelectedUser] = useState<User | null>(activeUsers[0] ?? null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [view, setView] = useState<'list' | 'chat'>('list')
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
   const [search, setSearch] = useState('')
   const [replyTo, setReplyTo] = useState<Message | null>(null)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
@@ -49,7 +49,7 @@ export default function AdminMessagesClient({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [thread.length])
+  }, [thread.length, view])
 
   useEffect(() => {
     if (!selectedUser) return
@@ -97,6 +97,250 @@ export default function AdminMessagesClient({
 
   function displayName(u: User) { return u.name ?? u.email }
 
+  function openChat(u: User) {
+    setSelectedUser(u)
+    setView('chat')
+    setReplyTo(null)
+  }
+
+  function backToList() {
+    setView('list')
+    setReplyTo(null)
+  }
+
+  function getLastMsg(u: User) {
+    return messages.filter(m =>
+      (m.sender_id === userId && m.receiver_id === u.id) ||
+      (m.receiver_id === userId && m.sender_id === u.id)
+    ).at(-1)
+  }
+
+  // ---- LIST PANEL ----
+  const listPanel = (
+    <div className="flex flex-col gap-3 w-full md:w-64 md:shrink-0">
+      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Users</p>
+      <div className="relative">
+        <Search size={14} strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search users…"
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+          onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+          onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+        />
+      </div>
+      <div
+        className="flex-1 overflow-y-auto rounded-2xl border border-white/10 overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}
+      >
+        {filteredUsers.length === 0 ? (
+          <div className="p-6 text-center text-slate-500 text-xs">No users found</div>
+        ) : (
+          <div className="divide-y divide-white/5">
+            {filteredUsers.map(u => {
+              const lastMsg = getLastMsg(u)
+              const lastPreview = lastMsg
+                ? (lastMsg.content.startsWith('↩ ')
+                    ? lastMsg.content.split('\n\n').slice(1).join(' ').slice(0, 50)
+                    : lastMsg.content.slice(0, 50))
+                : ''
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => openChat(u)}
+                  className="w-full text-left px-4 py-4 flex items-center gap-3 hover:bg-white/5 transition-all"
+                  style={selectedUser?.id === u.id ? { background: 'rgba(59,130,246,0.1)' } : {}}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)' }}
+                  >
+                    {displayName(u)[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-bold text-white text-sm truncate">{displayName(u)}</span>
+                      {lastMsg && (
+                        <span className="text-[10px] text-slate-500 shrink-0 ml-2">
+                          {new Date(lastMsg.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 truncate">
+                      {lastMsg ? (lastMsg.sender_id === userId ? 'You: ' : '') + lastPreview : 'No messages yet'}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  // ---- CHAT PANEL ----
+  const chatPanel = selectedUser ? (
+    <div
+      className="flex-1 flex flex-col rounded-2xl border border-white/10 overflow-hidden"
+      style={{ background: '#0B1224', height: 'calc(100svh - 7rem)' }}
+    >
+      {/* Header */}
+      <div
+        className="px-3 py-3 flex items-center gap-3 shrink-0"
+        style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+      >
+        <button
+          onClick={backToList}
+          className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all shrink-0"
+        >
+          <ArrowLeft size={18} strokeWidth={2} />
+        </button>
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+          style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)' }}
+        >
+          {displayName(selectedUser)[0].toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <p className="font-bold text-white text-sm truncate">{displayName(selectedUser)}</p>
+          <p className="text-xs text-slate-500">{selectedUser.email}</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+        {thread.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+            <MessageSquare size={32} strokeWidth={1.25} />
+            <p className="text-sm">No messages yet with {displayName(selectedUser)}</p>
+          </div>
+        )}
+        {thread.map(m => {
+          const isMine = m.sender_id === userId
+          const isReplyMsg = m.content.startsWith('↩ ')
+          let replyLine = ''
+          let bodyContent = m.content
+          if (isReplyMsg) {
+            const parts = m.content.split('\n\n')
+            replyLine = parts[0]
+            bodyContent = parts.slice(1).join('\n\n')
+          }
+          return (
+            <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+              <div className={`flex items-end gap-1.5 max-w-[82%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+                {/* Action buttons — always visible */}
+                <div className={`flex flex-col gap-1 ${isMine ? 'items-end' : 'items-start'}`}>
+                  <button
+                    onClick={() => setReplyTo(m)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-white/5 transition-all"
+                    title="Reply"
+                  >
+                    <CornerUpLeft size={13} strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => deleteMessage(m.id)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/5 transition-all"
+                    title="Delete"
+                  >
+                    <Trash2 size={13} strokeWidth={2} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col">
+                  {isReplyMsg && (
+                    <div
+                      className={`mb-1 px-3 py-1.5 rounded-lg text-[11px] max-w-full truncate ${isMine ? 'self-end' : 'self-start'}`}
+                      style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}
+                    >
+                      {replyLine}
+                    </div>
+                  )}
+                  {m.problem && (
+                    <div
+                      className={`mb-1 px-3 py-1.5 rounded-lg text-[11px] max-w-full truncate ${isMine ? 'self-end' : 'self-start'}`}
+                      style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}
+                    >
+                      Re: {(m.problem as any).title ?? (m.problem as any).question?.slice(0, 40)}…
+                    </div>
+                  )}
+                  <div
+                    className="px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
+                    style={isMine
+                      ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white' }
+                      : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#E2E8F0' }}
+                  >
+                    {bodyContent}
+                  </div>
+                  <p className={`text-[10px] text-slate-600 mt-0.5 px-1 ${isMine ? 'text-right' : 'text-left'}`}>
+                    {new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Reply preview */}
+      {replyTo && (
+        <div
+          className="px-3 py-2 flex items-center gap-3 shrink-0"
+          style={{ background: 'rgba(59,130,246,0.06)', borderTop: '1px solid rgba(59,130,246,0.2)' }}
+        >
+          <CornerUpLeft size={14} strokeWidth={2} className="text-blue-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold text-blue-400">
+              {replyTo.sender_id === userId ? 'You' : (replyTo.sender?.name ?? replyTo.sender?.email)}
+            </p>
+            <p className="text-xs text-slate-400 truncate">
+              {replyTo.content.startsWith('↩ ')
+                ? replyTo.content.split('\n\n').slice(1).join(' ')
+                : replyTo.content}
+            </p>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="text-slate-500 hover:text-white transition-colors p-1 shrink-0">
+            <X size={14} strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="px-3 py-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+            placeholder="Type a reply…"
+            rows={3}
+            className="flex-1 px-4 py-3 rounded-xl text-sm text-slate-200 focus:outline-none transition-all resize-none min-h-[80px]"
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)' }}
+            onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.6)')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.18)')}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!content.trim() || sending}
+            className="px-4 py-3 rounded-xl font-bold text-white transition-all disabled:opacity-40 hover:scale-105 active:scale-95 shrink-0"
+            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 16px rgba(59,130,246,0.35)' }}
+          >
+            <Send size={16} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="hidden md:flex flex-1 items-center justify-center text-slate-500 rounded-2xl border border-white/10"
+      style={{ background: 'rgba(255,255,255,0.02)' }}>
+      <p className="text-sm">Select a user to view messages</p>
+    </div>
+  )
+
   return (
     <div>
       <div className="mb-8">
@@ -105,208 +349,22 @@ export default function AdminMessagesClient({
       </div>
 
       {sidebarUsers.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 p-14 text-center text-slate-500" style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}>
+        <div className="rounded-2xl border border-white/10 p-14 text-center text-slate-500"
+          style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}>
           No conversations yet.
         </div>
       ) : (
-        <div className="flex gap-6 h-[70vh]">
-          {/* Sidebar */}
-          <div className="w-64 shrink-0 flex flex-col gap-3">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Users</p>
-            <div className="relative">
-              <Search size={14} strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search users…"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
-                onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
-              />
-            </div>
-            <div
-              className="flex-1 overflow-y-auto rounded-2xl border border-white/10 overflow-hidden"
-              style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}
-            >
-              {filteredUsers.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-xs">No users found</div>
-              ) : (
-                <div className="divide-y divide-white/5">
-                  {filteredUsers.map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => { setSelectedUser(u); setReplyTo(null) }}
-                      className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-all"
-                      style={selectedUser?.id === u.id ? { background: 'rgba(59,130,246,0.1)' } : {}}
-                    >
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)' }}
-                      >
-                        {displayName(u)[0].toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-white text-sm truncate">{displayName(u)}</p>
-                        <p className="text-xs text-slate-500 truncate">{u.email}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+        <>
+          {/* Mobile: one panel at a time */}
+          <div className="md:hidden">
+            {view === 'list' ? listPanel : chatPanel}
           </div>
-
-          {/* Chat panel */}
-          {selectedUser && (
-            <div className="flex-1 flex flex-col rounded-2xl border border-white/10 overflow-hidden" style={{ background: '#0B1224' }}>
-              {/* Header */}
-              <div
-                className="px-6 py-4 flex items-center gap-3 shrink-0"
-                style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)' }}
-                >
-                  {displayName(selectedUser)[0].toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-bold text-white text-sm">{displayName(selectedUser)}</p>
-                  <p className="text-xs text-slate-500">{selectedUser.email}</p>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-                {thread.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
-                    <MessageSquare size={32} strokeWidth={1.25} />
-                    <p className="text-sm">No messages yet with {displayName(selectedUser)}</p>
-                  </div>
-                )}
-                {thread.map(m => {
-                  const isMine = m.sender_id === userId
-                  const isReplyMsg = m.content.startsWith('↩ ')
-                  let replyLine = ''
-                  let bodyContent = m.content
-                  if (isReplyMsg) {
-                    const parts = m.content.split('\n\n')
-                    replyLine = parts[0]
-                    bodyContent = parts.slice(1).join('\n\n')
-                  }
-                  const isHovered = hoveredId === m.id
-                  return (
-                    <div
-                      key={m.id}
-                      className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`}
-                      onMouseEnter={() => setHoveredId(m.id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                    >
-                      <div className={`flex items-end gap-1.5 max-w-[75%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <div className={`flex flex-col gap-1 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'} ${isMine ? 'items-end' : 'items-start'}`}>
-                          <button
-                            onClick={() => setReplyTo(m)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-white/5 transition-all"
-                            title="Reply"
-                          >
-                            <CornerUpLeft size={13} strokeWidth={2} />
-                          </button>
-                          <button
-                            onClick={() => deleteMessage(m.id)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/5 transition-all"
-                            title="Delete"
-                          >
-                            <Trash2 size={13} strokeWidth={2} />
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col">
-                          {isReplyMsg && (
-                            <div
-                              className={`mb-1 px-3 py-1.5 rounded-lg text-[11px] max-w-full truncate ${isMine ? 'self-end' : 'self-start'}`}
-                              style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}
-                            >
-                              {replyLine}
-                            </div>
-                          )}
-                          {m.problem && (
-                            <div
-                              className={`mb-1 px-3 py-1.5 rounded-lg text-[11px] max-w-full truncate ${isMine ? 'self-end' : 'self-start'}`}
-                              style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}
-                            >
-                              Re: {(m.problem as any).title ?? (m.problem as any).question?.slice(0, 40)}…
-                            </div>
-                          )}
-                          <div
-                            className="px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
-                            style={isMine
-                              ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white' }
-                              : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#E2E8F0' }}
-                          >
-                            {bodyContent}
-                          </div>
-                          <p className={`text-[10px] text-slate-600 mt-0.5 px-1 ${isMine ? 'text-right' : 'text-left'}`}>
-                            {new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                <div ref={bottomRef} />
-              </div>
-
-              {/* Reply preview */}
-              {replyTo && (
-                <div
-                  className="px-5 py-2 flex items-center gap-3 shrink-0"
-                  style={{ background: 'rgba(59,130,246,0.06)', borderTop: '1px solid rgba(59,130,246,0.2)' }}
-                >
-                  <CornerUpLeft size={14} strokeWidth={2} className="text-blue-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-blue-400">
-                      {replyTo.sender_id === userId ? 'You' : (replyTo.sender?.name ?? replyTo.sender?.email)}
-                    </p>
-                    <p className="text-xs text-slate-400 truncate">
-                      {replyTo.content.startsWith('↩ ')
-                        ? replyTo.content.split('\n\n').slice(1).join(' ')
-                        : replyTo.content}
-                    </p>
-                  </div>
-                  <button onClick={() => setReplyTo(null)} className="text-slate-500 hover:text-white transition-colors p-1 shrink-0">
-                    <X size={14} strokeWidth={2} />
-                  </button>
-                </div>
-              )}
-
-              {/* Input */}
-              <div className="px-5 py-4 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                <div className="flex gap-2 items-center">
-                  <input
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                    placeholder="Type a reply…"
-                    className="flex-1 px-4 py-2.5 rounded-xl text-sm text-slate-200 focus:outline-none transition-all"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
-                    onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={!content.trim() || sending}
-                    className="p-2.5 rounded-xl text-white transition-all disabled:opacity-40 hover:scale-105 active:scale-95 shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
-                  >
-                    <Send size={16} strokeWidth={2} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Desktop: side by side */}
+          <div className="hidden md:flex gap-6" style={{ height: '70vh' }}>
+            {listPanel}
+            {chatPanel}
+          </div>
+        </>
       )}
     </div>
   )
