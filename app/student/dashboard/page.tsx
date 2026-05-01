@@ -32,8 +32,24 @@ export default async function DashboardPage() {
     supabase.from('problem_attempts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('attempted_at', today),
     supabase.from('problem_attempts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('problem_attempts').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_correct', true),
-    supabase.from('exams').select('*').eq('user_id', user.id).order('taken_at', { ascending: false }).limit(5),
+    supabase.from('exams').select('*').eq('user_id', user.id).order('taken_at', { ascending: true }),
   ])
+
+  // Group part1+part2 into sessions
+  type ExamRow = { id: string; part: number; score: number; total: number; taken_at: string }
+  const allExams: ExamRow[] = exams ?? []
+  const used = new Set<string>()
+  const sessions: { date: string; part1?: ExamRow; part2?: ExamRow }[] = []
+  for (let i = 0; i < allExams.length; i++) {
+    if (used.has(allExams[i].id)) continue
+    const e = allExams[i]
+    if (e.part === 1) {
+      const next = allExams.find((x, j) => j > i && x.part === 2 && !used.has(x.id))
+      if (next) { used.add(e.id); used.add(next.id); sessions.push({ date: e.taken_at, part1: e, part2: next }) }
+      else { used.add(e.id); sessions.push({ date: e.taken_at, part1: e }) }
+    } else { used.add(e.id); sessions.push({ date: e.taken_at, part2: e }) }
+  }
+  const recentSessions = sessions.slice().reverse().slice(0, 3)
 
   const accuracy = totalAttempts ? Math.round((correctAttempts ?? 0) / totalAttempts * 100) : 0
 
@@ -42,7 +58,7 @@ export default async function DashboardPage() {
     problemsTried: totalAttempts ?? 0,
     problemsSolved: correctAttempts ?? 0,
     accuracy: `${accuracy}%`,
-    examsCount: exams?.length ?? 0,
+    examsCount: sessions.length,
   }
 
   return (
@@ -114,22 +130,34 @@ export default async function DashboardPage() {
               Take exam <ArrowRight size={12} strokeWidth={2.5} />
             </Link>
           </div>
-          {exams && exams.length > 0 ? (
-            <div className="space-y-3">
-              {exams.map(e => {
-                const pct = Math.round(e.score / e.total * 100)
+          {recentSessions.length > 0 ? (
+            <div className="space-y-4">
+              {recentSessions.map((session, idx) => {
+                const totalScore = (session.part1?.score ?? 0) + (session.part2?.score ?? 0)
+                const totalTotal = (session.part1?.total ?? 0) + (session.part2?.total ?? 0)
+                const pct = totalTotal ? Math.round(totalScore / totalTotal * 100) : 0
                 const color = pct >= 80 ? '#34D399' : pct >= 50 ? '#FBBF24' : '#F87171'
+                const dateStr = new Date(session.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
                 return (
-                  <div key={e.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                    <div>
-                      <span className="text-sm font-semibold text-slate-200">Part {e.part}</span>
-                      <span className="text-xs text-slate-500 ml-2">{new Date(e.taken_at).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-24 bg-white/5 rounded-full h-1.5 overflow-hidden">
-                        <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color, boxShadow: `0 0 12px ${color}66` }} />
+                  <div key={idx} className="rounded-xl p-4 border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-sm font-semibold text-slate-200">Full Test</span>
+                        <span className="text-xs text-slate-500 ml-2">{dateStr}</span>
                       </div>
-                      <span className="text-sm font-bold w-14 text-right tabular-nums" style={{ color }}>{e.score}/{e.total}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 bg-white/5 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color, boxShadow: `0 0 12px ${color}66` }} />
+                        </div>
+                        <span className="text-sm font-bold w-14 text-right tabular-nums" style={{ color }}>{totalScore}/{totalTotal}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 mt-1 pl-1">
+                      {[session.part1, session.part2].map(p => p && (
+                        <span key={p.id} className="text-xs text-slate-500">
+                          Part {p.part}: <span className="text-slate-400 font-semibold">{p.score}/{p.total}</span>
+                        </span>
+                      ))}
                     </div>
                   </div>
                 )
