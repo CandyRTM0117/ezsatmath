@@ -477,13 +477,18 @@ export default function ExamClient({
                 return (
                   <div key={e1.id} className="px-7 py-5">
                     <div className="flex items-center justify-between mb-3">
-                      <div>
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-white">
                           {new Date(e1.taken_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
-                        <span className="ml-3 text-xs font-bold tabular-nums" style={{ color: satColor }}>
-                          SAT {sat}
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums" style={{ background: `${color1}1a`, color: color1, border: `1px solid ${color1}40` }}>
+                          P1 {e1.score}/{e1.total}
                         </span>
+                        {e2 && color2 && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums" style={{ background: `${color2}1a`, color: color2, border: `1px solid ${color2}40` }}>
+                            P2 {e2.score}/{e2.total}
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => openDetail(e1, e2)}

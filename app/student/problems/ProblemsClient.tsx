@@ -213,10 +213,9 @@ export default function ProblemsClient({
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8 fade-in" onClick={closeProblem}>
           <ProblemErrorBoundary>
             <div
-              className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden zoom-in-95"
+              className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden zoom-in-95 max-h-[90vh]"
               onClick={e => e.stopPropagation()}
               style={{
-                height: '85vh',
                 background: '#0F172A',
                 border: '1px solid rgba(255,255,255,0.1)',
                 boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',

@@ -161,14 +161,17 @@ export default function BookmarksClient({
             const attempted = p.id in attemptMap
             const correct = attemptMap[p.id]
             return (
-              <button
+              <div
                 key={p.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => { setSelected(p); setAnswer(''); setResult(null) }}
-                className="text-left rounded-2xl p-6 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 relative"
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(p); setAnswer(''); setResult(null) } }}
+                className="cursor-pointer text-left rounded-2xl p-6 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 relative"
                 style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', boxShadow: '0 12px 30px rgba(0,0,0,0.25)' }}
               >
                 <button
-                  onClick={e => removeBookmark(e, p.id)}
+                  onClick={e => { e.stopPropagation(); removeBookmark(e, p.id) }}
                   className="absolute top-4 right-4 text-yellow-400 hover:text-red-400 transition-colors z-10"
                   title="Remove bookmark"
                 >
@@ -190,7 +193,7 @@ export default function BookmarksClient({
                 </div>
                 {p.title && <p className="font-extrabold text-white text-base mb-2">{p.title}</p>}
                 <p className="text-slate-400 text-sm leading-relaxed line-clamp-3">{p.question}</p>
-              </button>
+              </div>
             )
           })}
         </div>
