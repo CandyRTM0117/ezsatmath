@@ -24,6 +24,7 @@ export interface Problem {
   explanation: string | null
   order_index: number | null
   image_url: string | null
+  choices_image_url: string | null
   drawings_json: Record<string, unknown> | null
   source: string | null
   claude_model: string | null
