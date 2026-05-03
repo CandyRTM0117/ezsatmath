@@ -20,6 +20,16 @@ export default function AppShell({ role, userName, userId, children }: AppShellP
     registerUser(userId)
   }, [userId])
 
+  const isFullscreen = /\/problems\/[^/]+$/.test(pathname)
+
+  if (isFullscreen) {
+    return (
+      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: '#0B1224' }}>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--app-bg)' }}>
       <Sidebar role={role} userName={userName} userId={userId} />

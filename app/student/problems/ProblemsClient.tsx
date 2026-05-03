@@ -53,6 +53,7 @@ export default function ProblemsClient({
   const [result, setResult] = useState<{ correct: boolean; explanation: string | null } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [lightbox, setLightbox] = useState(false)
+  const [imgError, setImgError] = useState(false)
   const [filterDiff, setFilterDiff] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [search, setSearch] = useState('')
@@ -64,6 +65,7 @@ export default function ProblemsClient({
     setSelected(p)
     setAnswer('')
     setResult(null)
+    setImgError(false)
     document.body.style.overflow = 'hidden'
     document.body.classList.add('modal-open')
   }
@@ -88,7 +90,7 @@ export default function ProblemsClient({
         is_correct: isCorrect,
       })
       setAttemptMap(m => ({ ...m, [selected.id]: isCorrect }))
-      setResult({ correct: isCorrect, explanation: isCorrect ? null : (selected.explanation ?? null) })
+      setResult({ correct: isCorrect, explanation: selected.explanation ?? null })
     } finally {
       setSubmitting(false)
     }
@@ -271,13 +273,14 @@ export default function ProblemsClient({
                     className="flex-[3] overflow-y-auto"
                     style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    {selected.image_url ? (
+                    {selected.image_url && !imgError ? (
                       <div>
                         <img
                           src={selected.image_url}
                           alt="Problem"
                           className="w-full cursor-zoom-in"
                           onClick={() => setLightbox(true)}
+                          onError={() => setImgError(true)}
                         />
                         <p className="text-center text-xs text-slate-600 py-1.5">click to expand</p>
                       </div>

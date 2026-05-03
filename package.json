@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1041.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.0",
     "lucide-react": "^1.14.0",
