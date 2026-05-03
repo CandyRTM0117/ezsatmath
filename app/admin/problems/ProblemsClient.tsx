@@ -381,6 +381,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Difficulty</th>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Category</th>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Topic</th>
+              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Source</th>
               <th className="px-5 py-4"></th>
             </tr>
           </thead>
@@ -399,6 +400,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                 </td>
                 <td className="px-5 py-4 text-slate-400">{p.category ?? '—'}</td>
                 <td className="px-5 py-4 text-slate-400">{p.topic ?? '—'}</td>
+                <td className="px-5 py-4 text-slate-400 max-w-[120px] truncate">{p.source ?? '—'}</td>
                 <td className="px-5 py-4 flex gap-3 justify-end">
                   <button onClick={() => openEdit(p)} className="text-blue-400 hover:text-blue-300 text-xs font-semibold transition-colors">Edit</button>
                   <button onClick={() => handleDelete(p)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Delete</button>
@@ -406,7 +408,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
               </tr>
             ))}
             {displayed.length === 0 && (
-              <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">No problems yet</td></tr>
+              <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No problems yet</td></tr>
             )}
           </tbody>
         </table>

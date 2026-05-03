@@ -13,6 +13,7 @@ export type ProblemCategory = 'Algebra' | 'Trigonometry' | 'Data Analytics' | 'A
 
 export interface Problem {
   id: string
+  pdf_id: string | null
   title: string | null
   question: string
   type: 'mc' | 'input'
@@ -22,6 +23,10 @@ export interface Problem {
   solution: string
   explanation: string | null
   order_index: number | null
+  image_url: string | null
+  drawings_json: Record<string, unknown> | null
+  source: string | null
+  claude_model: string | null
   created_at: string
   choices?: Choice[]
 }
@@ -29,7 +34,7 @@ export interface Problem {
 export interface Choice {
   id: string
   problem_id: string
-  label: 'A' | 'B' | 'C' | 'D'
+  label: string
   choice_text: string
   is_correct: boolean
   order_index: number
