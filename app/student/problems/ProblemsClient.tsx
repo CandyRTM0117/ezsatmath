@@ -2,7 +2,7 @@
 
 import { useState, useRef, Component, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2, Menu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
 import type { Problem, Choice, ProblemCategory } from '@/types'
@@ -52,6 +52,7 @@ export default function ProblemsClient({
   const [answer, setAnswer] = useState('')
   const [result, setResult] = useState<{ correct: boolean; explanation: string | null } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [lightbox, setLightbox] = useState(false)
   const [filterDiff, setFilterDiff] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [search, setSearch] = useState('')
@@ -69,6 +70,7 @@ export default function ProblemsClient({
 
   function closeProblem() {
     setSelected(null)
+    setLightbox(false)
     document.body.style.overflow = ''
     document.body.classList.remove('modal-open')
   }
@@ -210,151 +212,209 @@ export default function ProblemsClient({
         </div>
       )}
 
-      {/* Problem modal — rendered via portal so CSS transforms in AppShell don't affect fixed positioning */}
+      {/* Problem modal */}
       {selected && createPortal(
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8 fade-in" onClick={closeProblem}>
-          <ProblemErrorBoundary>
-            <div
-              className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden zoom-in-95 max-h-[90vh]"
-              onClick={e => e.stopPropagation()}
-              style={{
-                background: '#0F172A',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
-              }}
-            >
-              {/* Left — question */}
-              <div className="flex-1 overflow-y-auto p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={diffStyle(selected.difficulty)}>{selected.difficulty}</span>
-                    {selected.category && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(59,130,246,0.12)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.25)' }}>
-                        {selected.category}
-                      </span>
-                    )}
-                    {selected.topic && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        {selected.topic}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 ml-4 shrink-0">
+        <>
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8"
+            onClick={closeProblem}
+          >
+            <ProblemErrorBoundary>
+              <div
+                className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden max-h-[90vh]"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  background: '#0F172A',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: '0 40px 80px rgba(0,0,0,0.6)',
+                }}
+              >
+                {/* Header bar */}
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize shrink-0" style={diffStyle(selected.difficulty)}>
+                    {selected.difficulty}
+                  </span>
+                  <span className="font-bold text-white text-sm truncate">
+                    {selected.title ?? `P${selected.order_index}`}
+                  </span>
+                  {selected.category && (
+                    <span className="text-xs text-slate-400 shrink-0">{selected.category}</span>
+                  )}
+                  {selected.topic && (
+                    <span className="text-xs text-slate-500 truncate">{selected.topic}</span>
+                  )}
+                  <div className="flex items-center gap-1 ml-auto shrink-0">
                     <button
                       onClick={e => toggleBookmark(e, selected.id)}
                       disabled={bookmarkLoading.has(selected.id)}
-                      className="text-slate-400 hover:text-yellow-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-50"
-                      title={bookmarks.has(selected.id) ? 'Remove bookmark' : 'Bookmark'}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-yellow-400 hover:bg-white/5 transition-colors disabled:opacity-50"
                     >
                       {bookmarkLoading.has(selected.id)
-                        ? <Loader2 size={18} strokeWidth={1.75} className="animate-spin" />
+                        ? <Loader2 size={16} className="animate-spin" />
                         : bookmarks.has(selected.id)
-                          ? <BookmarkCheck size={18} strokeWidth={1.75} className="text-yellow-400" />
-                          : <Bookmark size={18} strokeWidth={1.75} />}
+                          ? <BookmarkCheck size={16} className="text-yellow-400" />
+                          : <Bookmark size={16} />}
                     </button>
-                    <button onClick={closeProblem} className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5">
-                      <X size={20} strokeWidth={1.75} />
+                    <button onClick={closeProblem} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
 
-                {selected.title && <h2 className="text-2xl font-extrabold text-white mb-4 leading-tight tracking-tight">{selected.title}</h2>}
-                <p className="text-slate-300 text-base leading-relaxed whitespace-pre-wrap flex-1">{selected.question}</p>
-
-                {result && !result.correct && selected.explanation && (
-                  <div className="mt-6 p-5 rounded-2xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                    <p className="text-xs font-bold text-amber-300 uppercase tracking-widest mb-2">Explanation</p>
-                    <p className="text-sm text-amber-100/90 leading-relaxed">{selected.explanation}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Right — answer */}
-              <div className="w-full lg:w-[400px] shrink-0 overflow-y-auto p-8 lg:p-10 flex flex-col" style={{ background: 'rgba(255,255,255,0.015)' }}>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-5">
-                  {result ? 'Result' : 'Your Answer'}
-                </p>
-
-                {result ? (
-                  <>
-                    <div
-                      className="rounded-2xl p-6 mb-6 flex items-center gap-4"
-                      style={result.correct
-                        ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }
-                        : { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}
-                    >
-                      {result.correct
-                        ? <CheckCircle2 size={36} strokeWidth={1.75} className="text-green-400 shrink-0" />
-                        : <CircleX size={36} strokeWidth={1.75} className="text-red-400 shrink-0" />}
+                {/* Body: two columns */}
+                <div className="flex flex-1 overflow-hidden min-h-0">
+                  {/* Left — question / image */}
+                  <div
+                    className="flex-[3] overflow-y-auto"
+                    style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    {selected.image_url ? (
                       <div>
-                        <p className={`font-extrabold text-xl ${result.correct ? 'text-green-300' : 'text-red-300'}`}>
-                          {result.correct ? 'Correct!' : 'Incorrect'}
-                        </p>
-                        {!result.correct && (
-                          <p className="text-sm text-slate-400 mt-1">Correct answer: <span className="font-semibold text-slate-200">{selected.solution}</span></p>
-                        )}
+                        <img
+                          src={selected.image_url}
+                          alt="Problem"
+                          className="w-full cursor-zoom-in"
+                          onClick={() => setLightbox(true)}
+                        />
+                        <p className="text-center text-xs text-slate-600 py-1.5">click to expand</p>
                       </div>
-                    </div>
-                    <button
-                      onClick={closeProblem}
-                      className="w-full py-3.5 rounded-full text-sm font-semibold text-slate-200 transition-all duration-200 mt-auto"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                    >
-                      Close
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {selected.type === 'mc' ? (
-                      <div className="space-y-3 flex-1">
+                    ) : selected.question ? (
+                      <p className="p-6 whitespace-pre-wrap text-sm text-slate-300 leading-relaxed">{selected.question}</p>
+                    ) : (
+                      <div
+                        className="m-6 rounded-xl flex items-center justify-center text-slate-600 text-sm"
+                        style={{ minHeight: 180, border: '2px dashed rgba(255,255,255,0.08)' }}
+                      >
+                        problem image
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right — answer */}
+                  <div className="flex-[2] p-6 flex flex-col overflow-y-auto">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
+                      Your Answer
+                    </p>
+
+                    {/* MC square buttons */}
+                    {selected.type === 'mc' && !result && (
+                      <div className="flex gap-3 flex-wrap mb-4">
                         {(selected.choices ?? []).sort((a, b) => a.order_index - b.order_index).map(c => {
                           const isSelected = answer === c.label
                           return (
-                            <label
+                            <button
                               key={c.id}
-                              className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200"
+                              onClick={() => setAnswer(c.label)}
+                              className="w-14 h-14 rounded-xl border-2 font-mono font-bold text-lg transition-all"
                               style={isSelected
-                                ? { background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.5)' }
-                                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                ? { borderColor: '#3B82F6', color: '#3B82F6', background: 'rgba(59,130,246,0.08)' }
+                                : { borderColor: 'rgba(255,255,255,0.15)', color: '#94A3B8', background: 'rgba(255,255,255,0.03)' }}
                             >
-                              <input type="radio" name="mc" value={c.label} checked={isSelected}
-                                onChange={() => setAnswer(c.label)} className="accent-blue-500 mt-0.5 shrink-0" />
-                              <span className="text-base font-bold text-slate-400 w-5 shrink-0">{c.label}.</span>
-                              <span className="text-base text-slate-200">{c.choice_text}</span>
-                            </label>
+                              {c.label}
+                            </button>
                           )
                         })}
                       </div>
-                    ) : (
-                      <input
-                        className="w-full px-4 py-4 rounded-xl text-base text-slate-200 transition-all duration-200 focus:outline-none"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
-                        onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                        onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.12)')}
-                        placeholder="Type your answer…"
-                        value={answer}
-                        onChange={e => setAnswer(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && submit()}
-                      />
                     )}
-                    <button
-                      onClick={submit}
-                      disabled={!answer || submitting}
-                      className="w-full py-4 font-bold text-white rounded-full text-base transition-all duration-200 mt-6 hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 10px 30px rgba(59,130,246,0.4)' }}
-                    >
-                      {submitting
-                        ? <span className="inline-flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Submitting…</span>
-                        : 'Submit Answer'}
-                    </button>
-                  </>
-                )}
+
+                    {/* Input */}
+                    {selected.type === 'input' && !result && (
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          value={answer}
+                          onChange={e => setAnswer(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && submit()}
+                          placeholder="Enter your answer"
+                          className="w-full px-4 py-3 rounded-xl font-mono text-base outline-none"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid #3B82F6', color: '#E2E8F0' }}
+                        />
+                        <p className="text-xs text-slate-500 mt-1.5">fraction · decimal · integer</p>
+                      </div>
+                    )}
+
+                    {/* Result panel */}
+                    {result && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          {result.correct
+                            ? <CheckCircle2 size={16} className="text-emerald-400" />
+                            : <CircleX size={16} className="text-red-400" />}
+                          <span className={`text-sm font-semibold ${result.correct ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {result.correct ? 'Correct!' : 'Incorrect'}
+                          </span>
+                        </div>
+                        <div
+                          className="rounded-xl p-4 min-h-24"
+                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                        >
+                          {result.explanation ? (
+                            <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{result.explanation}</p>
+                          ) : (
+                            <div className="h-16 rounded-lg flex items-center justify-center text-slate-600 text-sm"
+                              style={{ border: '2px dashed rgba(255,255,255,0.08)' }}>
+                              solution image
+                            </div>
+                          )}
+                        </div>
+                        {!result.correct && selected.solution && (
+                          <p className="mt-2 text-sm text-emerald-400">
+                            Correct answer: <span className="font-mono font-semibold">{selected.solution}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex-1" />
+
+                    {/* Submit button */}
+                    {!result ? (
+                      <button
+                        onClick={submit}
+                        disabled={!answer || submitting}
+                        className="w-full py-4 rounded-full font-semibold text-base transition-all"
+                        style={answer && !submitting
+                          ? { background: '#2563EB', color: '#fff', boxShadow: '0 0 20px rgba(37,99,235,0.4)' }
+                          : { background: 'rgba(255,255,255,0.04)', color: '#475569' }}
+                      >
+                        {submitting
+                          ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Submitting…</span>
+                          : 'Submit Answer'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setResult(null); setAnswer('') }}
+                        className="w-full py-4 rounded-full font-semibold text-sm text-slate-300 transition-colors"
+                        style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+                      >
+                        Try Again
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
+            </ProblemErrorBoundary>
+          </div>
+
+          {/* Lightbox */}
+          {lightbox && (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center cursor-zoom-out"
+              style={{ background: 'rgba(0,0,0,0.92)' }}
+              onClick={() => setLightbox(false)}
+            >
+              <img
+                src={selected.image_url!}
+                alt="Problem expanded"
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                onClick={e => e.stopPropagation()}
+              />
             </div>
-          </ProblemErrorBoundary>
-        </div>,
+          )}
+        </>,
         document.body
       )}
 
