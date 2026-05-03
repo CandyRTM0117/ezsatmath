@@ -54,6 +54,7 @@ export default function ProblemsClient({
   const [submitting, setSubmitting] = useState(false)
   const [lightbox, setLightbox] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [imgLoading, setImgLoading] = useState(false)
   const [filterDiff, setFilterDiff] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [search, setSearch] = useState('')
@@ -66,6 +67,7 @@ export default function ProblemsClient({
     setAnswer('')
     setResult(null)
     setImgError(false)
+    setImgLoading(!!p.image_url)
     document.body.style.overflow = 'hidden'
     document.body.classList.add('modal-open')
   }
@@ -217,13 +219,18 @@ export default function ProblemsClient({
       {/* Problem modal */}
       {selected && createPortal(
         <>
+          {/* Backdrop — no padding on mobile (full screen), padded on desktop */}
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-8"
+            className="fixed inset-0 z-50 flex items-center justify-center md:bg-black/80 md:backdrop-blur-sm md:p-6"
             onClick={closeProblem}
           >
             <ProblemErrorBoundary>
               <div
-                className="rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden max-h-[90vh]"
+                className="
+                  flex flex-col overflow-hidden
+                  w-full h-full rounded-none
+                  md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]
+                "
                 onClick={e => e.stopPropagation()}
                 style={{
                   background: '#0F172A',
@@ -231,9 +238,40 @@ export default function ProblemsClient({
                   boxShadow: '0 40px 80px rgba(0,0,0,0.6)',
                 }}
               >
-                {/* Header bar */}
+                {/* Mobile header — back button */}
                 <div
-                  className="flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
+                  className="flex md:hidden items-center gap-3 px-4 py-3 flex-shrink-0"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0F172A' }}
+                >
+                  <button
+                    onClick={closeProblem}
+                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+                  >
+                    <ChevronLeft size={20} />
+                    Back
+                  </button>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold capitalize ml-1" style={diffStyle(selected.difficulty)}>
+                    {selected.difficulty}
+                  </span>
+                  <span className="text-xs text-slate-400 truncate flex-1 min-w-0">
+                    {[selected.category, selected.topic].filter(Boolean).join(' · ')}
+                  </span>
+                  <button
+                    onClick={e => toggleBookmark(e, selected.id)}
+                    disabled={bookmarkLoading.has(selected.id)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-yellow-400 transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {bookmarkLoading.has(selected.id)
+                      ? <Loader2 size={16} className="animate-spin" />
+                      : bookmarks.has(selected.id)
+                        ? <BookmarkCheck size={16} className="text-yellow-400" />
+                        : <Bookmark size={16} />}
+                  </button>
+                </div>
+
+                {/* Desktop header */}
+                <div
+                  className="hidden md:flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
                   style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize shrink-0" style={diffStyle(selected.difficulty)}>
@@ -266,23 +304,42 @@ export default function ProblemsClient({
                   </div>
                 </div>
 
-                {/* Body: two columns */}
-                <div className="flex flex-1 overflow-hidden min-h-0">
-                  {/* Left — question / image */}
+                {/* Body — vertical on mobile, horizontal on desktop */}
+                <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0 relative">
+
+                  {/* Loading overlay */}
+                  {imgLoading && (
+                    <div
+                      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
+                      style={{ background: '#0F172A' }}
+                    >
+                      <div className="w-64 flex flex-col gap-3">
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)', width: '100%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)', width: '80%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)', width: '90%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.05)', width: '70%' }} />
+                      </div>
+                      <Loader2 size={20} className="animate-spin text-slate-600 mt-2" />
+                    </div>
+                  )}
+
+                  {/* Left — Mobile: 52% height. Desktop: 62% width */}
                   <div
-                    className="flex-[3] overflow-y-auto"
-                    style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
+                    className="h-[52%] overflow-y-auto md:h-full md:w-[62%] md:flex-none border-b border-white/[0.08] md:border-b-0 md:border-r md:border-white/[0.08]"
                   >
                     {selected.image_url && !imgError ? (
-                      <div>
+                      <div className="h-full flex flex-col">
                         <img
                           src={selected.image_url}
                           alt="Problem"
-                          className="w-full cursor-zoom-in"
+                          className="flex-1 w-full object-contain cursor-zoom-in min-h-0"
                           onClick={() => setLightbox(true)}
-                          onError={() => setImgError(true)}
+                          onLoad={() => setImgLoading(false)}
+                          onError={() => { setImgError(true); setImgLoading(false) }}
                         />
-                        <p className="text-center text-xs text-slate-600 py-1.5">click to expand</p>
+                        {!imgLoading && (
+                          <p className="text-center text-xs text-slate-600 py-1.5 flex-shrink-0">click to expand</p>
+                        )}
                       </div>
                     ) : selected.question ? (
                       <p className="p-6 whitespace-pre-wrap text-sm text-slate-300 leading-relaxed">{selected.question}</p>
@@ -296,13 +353,15 @@ export default function ProblemsClient({
                     )}
                   </div>
 
-                  {/* Right — answer */}
-                  <div className="flex-[2] p-6 flex flex-col overflow-y-auto">
+                  {/* Right — Mobile: remaining height. Desktop: 38% width */}
+                  <div
+                    className="flex-1 min-h-0 overflow-y-auto md:flex-none md:h-full md:w-[38%] p-5 md:p-6 flex flex-col"
+                  >
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
                       Your Answer
                     </p>
 
-                    {/* MC square buttons */}
+                    {/* MC buttons */}
                     {selected.type === 'mc' && !result && (
                       <div className="flex gap-3 flex-wrap mb-4">
                         {(selected.choices ?? []).sort((a, b) => a.order_index - b.order_index).map(c => {
@@ -373,7 +432,7 @@ export default function ProblemsClient({
 
                     <div className="flex-1" />
 
-                    {/* Submit button */}
+                    {/* Submit / Try Again */}
                     {!result ? (
                       <button
                         onClick={submit}
