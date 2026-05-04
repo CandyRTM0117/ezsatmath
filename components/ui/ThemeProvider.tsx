@@ -19,22 +19,21 @@ const ThemeContext = createContext<ThemeContextValue>({
 export function useTheme() { return useContext(ThemeContext) }
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark')
+  const [theme, setThemeState] = useState<Theme>('light')
   const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     if (userId) return
     const saved = localStorage.getItem('ezsat-theme') as Theme | null
-    if (saved === 'light') {
-      setThemeState('light')
-      document.documentElement.classList.add('light')
-    }
+    const next = saved ?? 'light'
+    setThemeState(next)
+    document.documentElement.classList.toggle('light', next === 'light')
   }, [userId])
 
   function registerUser(uid: string) {
     setUserId(uid)
     const saved = localStorage.getItem(`ezsat-theme-${uid}`) as Theme | null
-    const next = saved ?? 'dark'
+    const next = saved ?? 'light'
     setThemeState(next)
     document.documentElement.classList.toggle('light', next === 'light')
   }

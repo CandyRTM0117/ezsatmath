@@ -330,6 +330,7 @@ export default function ProblemsClient({
                     {selected.image_url && !imgError ? (
                       <div className="h-full flex flex-col">
                         <img
+                          key={selected.id}
                           src={selected.image_url}
                           alt="Problem"
                           className="flex-1 w-full object-contain cursor-zoom-in min-h-0"
