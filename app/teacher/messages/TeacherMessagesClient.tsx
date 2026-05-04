@@ -140,8 +140,7 @@ export default function TeacherMessagesClient({
         </div>
 
         {displayStudents.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 p-14 text-center text-slate-500"
-            style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}>
+          <div className="c-card rounded-2xl p-14 text-center text-slate-500">
             No student conversations yet.
           </div>
         ) : (
@@ -160,10 +159,7 @@ export default function TeacherMessagesClient({
               />
             </div>
 
-            <div
-              className="rounded-2xl border border-white/10 overflow-hidden"
-              style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}
-            >
+            <div className="c-card rounded-2xl overflow-hidden">
               {filteredStudents.length === 0 ? (
                 <div className="p-10 text-center text-slate-500 text-sm">No students found</div>
               ) : (

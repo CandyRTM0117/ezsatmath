@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2, Lock, ChevronDown, ChevronUp } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Problem, Choice } from '@/types'
@@ -55,7 +56,17 @@ interface DetailAnswer {
   id: string
   user_answer: string
   is_correct: boolean
-  problem?: { question: string; solution: string; explanation?: string }
+  problem?: {
+    id: string
+    question: string
+    solution: string
+    explanation?: string | null
+    image_url?: string | null
+    difficulty?: string
+    category?: string | null
+    topic?: string | null
+    type?: string
+  }
 }
 
 interface FullDetail {
@@ -112,9 +123,30 @@ export default function ExamClient({
   const [part2Result, setPart2Result] = useState<PartResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [fullDetail, setFullDetail] = useState<FullDetail | null>(null)
-  const [expandedExplanations, setExpandedExplanations] = useState<Set<string>>(new Set())
+  const [reviewItem, setReviewItem] = useState<{ answer: DetailAnswer; partLabel: string; rowNum: number } | null>(null)
+  const [detailLightbox, setDetailLightbox] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [examImageExpanded, setExamImageExpanded] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
   const submitted = useRef(false)
   const supabase = createClient()
+
+  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setExamImageExpanded(false)
+    setImageLoaded(false)
+  }, [current])
+
+  // Toggle modal-open class so globals.css blurs the app behind the overlay
+  useEffect(() => {
+    const active = phase === 'part1_active' || phase === 'part2_active'
+    if (active) {
+      document.body.classList.add('modal-open')
+    } else {
+      document.body.classList.remove('modal-open')
+    }
+    return () => document.body.classList.remove('modal-open')
+  }, [phase])
 
   const hasExamsLeft = isSubscribed || examCount < FREE_EXAM_LIMIT
   const activePart = phase === 'part1_active' ? 1 : 2
@@ -183,31 +215,26 @@ export default function ExamClient({
   }, [phase, submitActivePart])
 
   async function openDetail(e1: ExamHistoryRecord, e2?: ExamHistoryRecord) {
-    setExpandedExplanations(new Set())
     setFullDetail({ loading: true, e1, e2, answers1: [], answers2: [] })
-    const [r1, r2] = await Promise.all([
-      supabase.from('exam_answers')
-        .select('id, user_answer, is_correct, problem:problems(question, solution, explanation)')
-        .eq('exam_id', e1.id),
-      e2
-        ? supabase.from('exam_answers')
-            .select('id, user_answer, is_correct, problem:problems(question, solution, explanation)')
-            .eq('exam_id', e2.id)
-        : Promise.resolve({ data: [] }),
-    ])
-    setFullDetail({
-      loading: false, e1, e2,
-      answers1: (r1.data ?? []) as unknown as DetailAnswer[],
-      answers2: ((r2 as any).data ?? []) as unknown as DetailAnswer[],
-    })
-  }
-
-  function toggleExplanation(id: string) {
-    setExpandedExplanations(prev => {
-      const n = new Set(prev)
-      n.has(id) ? n.delete(id) : n.add(id)
-      return n
-    })
+    try {
+      const [r1, r2] = await Promise.all([
+        supabase.from('exam_answers')
+          .select('id, user_answer, is_correct, problem:problems(id, question, solution, explanation, image_url, difficulty, category, topic, type)')
+          .eq('exam_id', e1.id),
+        e2
+          ? supabase.from('exam_answers')
+              .select('id, user_answer, is_correct, problem:problems(id, question, solution, explanation, image_url, difficulty, category, topic, type)')
+              .eq('exam_id', e2.id)
+          : Promise.resolve({ data: [] }),
+      ])
+      setFullDetail({
+        loading: false, e1, e2,
+        answers1: (r1.data ?? []) as unknown as DetailAnswer[],
+        answers2: ((r2 as any).data ?? []) as unknown as DetailAnswer[],
+      })
+    } catch {
+      setFullDetail(prev => prev ? { ...prev, loading: false } : null)
+    }
   }
 
   function startPart1() {
@@ -223,9 +250,14 @@ export default function ExamClient({
   function startPart2() {
     const usedIds = new Set(part1Problems.map(p => p.id))
     const highScore = (part1Result?.score ?? 0) >= PART1_THRESHOLD
-    const p2 = highScore
-      ? shuffle([...pick(hardProblems, PART2_HARD_HIGH, usedIds), ...pick(mediumProblems, PART2_MEDIUM_HIGH, usedIds)])
-      : shuffle([...pick(mediumProblems, PART2_MEDIUM_LOW, usedIds), ...pick(hardProblems, PART2_HARD_LOW, usedIds)])
+    const hardPick = pick(hardProblems, highScore ? PART2_HARD_HIGH : PART2_HARD_LOW, usedIds)
+    const mediumPick = pick(mediumProblems, highScore ? PART2_MEDIUM_HIGH : PART2_MEDIUM_LOW, usedIds)
+    let p2 = shuffle([...hardPick, ...mediumPick])
+    if (p2.length < 22) {
+      const pickedIds = new Set(p2.map(p => p.id))
+      const fillers = shuffle([...hardProblems, ...mediumProblems].filter(p => !pickedIds.has(p.id)))
+      p2 = [...p2, ...fillers.slice(0, 22 - p2.length)]
+    }
     setPart2Problems(p2)
     setCurrent(0); setAnswers({}); setTimeLeft(EXAM_DURATION)
     setStartTime(Date.now()); submitted.current = false
@@ -247,130 +279,293 @@ export default function ExamClient({
     const satColor = combinedSat >= 650 ? '#34D399' : combinedSat >= 450 ? '#FBBF24' : '#F87171'
     const color1 = pct1 >= 80 ? '#34D399' : pct1 >= 50 ? '#FBBF24' : '#F87171'
     const color2 = pct2 != null ? (pct2 >= 80 ? '#34D399' : pct2 >= 50 ? '#FBBF24' : '#F87171') : null
+    const parts = [
+      { label: 'Part 1', record: e1, answers: answers1 },
+      { label: 'Part 2', record: e2, answers: answers2 },
+    ] as const
+
+    // Normalize Supabase array-or-object join shape
+    function prob(a: DetailAnswer) {
+      return (Array.isArray(a.problem) ? (a.problem as any)[0] : a.problem) as DetailAnswer['problem']
+    }
 
     return (
       <div>
+        {/* ── Review modal portal ── */}
+        {reviewItem && mounted && createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center md:bg-black/80 md:backdrop-blur-sm md:p-6"
+              onClick={() => { setReviewItem(null); setDetailLightbox(false) }}
+            >
+              <div
+                className="flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
+                onClick={e => e.stopPropagation()}
+                style={{ background: 'var(--app-bg-alt)', border: '1px solid var(--card-border)', boxShadow: '0 40px 80px rgba(0,0,0,0.4)' }}
+              >
+                {/* Header */}
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
+                  style={{ borderBottom: '1px solid var(--card-border)' }}
+                >
+                  <span
+                    className="font-mono font-bold text-xs flex-shrink-0"
+                    style={{ background: 'var(--input-bg)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: 6 }}
+                  >
+                    Q{reviewItem.rowNum}
+                  </span>
+                  {prob(reviewItem.answer)?.difficulty && (
+                    <span
+                      className="flex-shrink-0 text-[10px] font-bold capitalize"
+                      style={{ ...diffStyle(prob(reviewItem.answer)!.difficulty!), padding: '2px 10px', borderRadius: 999 }}
+                    >
+                      {prob(reviewItem.answer)!.difficulty}
+                    </span>
+                  )}
+                  {prob(reviewItem.answer)?.category && (
+                    <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                      {[prob(reviewItem.answer)?.category, prob(reviewItem.answer)?.topic].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                  <span
+                    className="ml-auto text-xs font-semibold flex-shrink-0"
+                    style={{ color: reviewItem.answer.is_correct ? '#34D399' : '#F87171' }}
+                  >
+                    {reviewItem.answer.is_correct ? 'Correct' : 'Incorrect'} · {reviewItem.partLabel}
+                  </span>
+                  <button
+                    onClick={() => { setReviewItem(null); setDetailLightbox(false) }}
+                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Body — same 62/38 split as ProblemsClient */}
+                <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+                  {/* Left: problem image */}
+                  <div className="h-[52%] overflow-y-auto md:h-full md:w-[62%] md:flex-none border-b border-white/[0.08] md:border-b-0 md:border-r md:border-white/[0.08]">
+                    {prob(reviewItem.answer)?.image_url ? (
+                      <div className="h-full flex flex-col">
+                        <img
+                          src={prob(reviewItem.answer)!.image_url!}
+                          alt="Problem"
+                          className="flex-1 w-full object-contain cursor-zoom-in min-h-0"
+                          onClick={() => setDetailLightbox(true)}
+                        />
+                        <p className="text-center text-xs py-1.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                          click to expand
+                        </p>
+                      </div>
+                    ) : prob(reviewItem.answer)?.question ? (
+                      <p className="p-6 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                        {prob(reviewItem.answer)!.question}
+                      </p>
+                    ) : (
+                      <div
+                        className="m-6 rounded-xl flex items-center justify-center text-sm"
+                        style={{ minHeight: 180, border: '2px dashed var(--card-border)', color: 'var(--text-muted)' }}
+                      >
+                        No image available
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: review info */}
+                  <div className="flex-1 min-h-0 overflow-y-auto md:flex-none md:h-full md:w-[38%] p-5 md:p-6 flex flex-col gap-5">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                        Your Answer
+                      </p>
+                      <p className="text-2xl font-bold font-mono" style={{ color: reviewItem.answer.is_correct ? '#34D399' : '#F87171' }}>
+                        {reviewItem.answer.user_answer || '—'}
+                      </p>
+                    </div>
+
+                    {!reviewItem.answer.is_correct && prob(reviewItem.answer)?.solution && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                          Correct Answer
+                        </p>
+                        <p className="text-2xl font-bold font-mono text-emerald-400">
+                          {prob(reviewItem.answer)!.solution}
+                        </p>
+                      </div>
+                    )}
+
+                    {prob(reviewItem.answer)?.explanation && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                          Solution
+                        </p>
+                        <div className="rounded-xl p-4" style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}>
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                            {prob(reviewItem.answer)!.explanation}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lightbox */}
+            {detailLightbox && prob(reviewItem.answer)?.image_url && (
+              <div
+                className="fixed inset-0 z-[60] flex items-center justify-center cursor-zoom-out"
+                style={{ background: 'rgba(0,0,0,0.92)' }}
+                onClick={() => setDetailLightbox(false)}
+              >
+                <img
+                  src={prob(reviewItem.answer)!.image_url!}
+                  alt="Problem expanded"
+                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                  onClick={e => e.stopPropagation()}
+                />
+              </div>
+            )}
+          </>,
+          document.body
+        )}
+
+        {/* ── Back + title ── */}
         <div className="flex items-center gap-4 mb-10">
           <button
             onClick={() => setFullDetail(null)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-slate-300 transition-all hover:text-white"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
           >
             <ArrowLeft size={14} strokeWidth={2} /> Back
           </button>
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
               Exam Results
             </h1>
-            <p className="text-slate-400 mt-1">
+            <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
               {new Date(e1.taken_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
         </div>
 
+        {/* ── Score summary cards ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: 'SAT Score', value: combinedSat, from: satColor, to: satColor + '99' },
+            { label: 'Total Correct', value: `${totalScore}/${e2 ? PART_TOTAL * 2 : PART_TOTAL}`, from: '#60A5FA', to: '#3B82F6' },
+            { label: 'Part 1', value: `${e1.score}/${PART_TOTAL} (${pct1}%)`, from: color1, to: color1 + '99' },
+            { label: 'Part 2', value: e2 && pct2 != null ? `${e2.score}/${PART_TOTAL} (${pct2}%)` : '—', from: color2 ?? '#94A3B8', to: (color2 ?? '#94A3B8') + '99' },
+          ].map(s => (
+            <div key={s.label} className="c-card rounded-2xl p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+              <p
+                className="text-2xl font-extrabold tracking-tight"
+                style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+              >
+                {s.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Per-part tables ── */}
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-slate-400 gap-3">
+          <div className="flex items-center justify-center py-20 gap-3" style={{ color: 'var(--text-muted)' }}>
             <Loader2 size={20} className="animate-spin" /> Loading exam details…
           </div>
         ) : (
           <>
-            {/* Score summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-              {[
-                { label: 'SAT Score', value: combinedSat, from: satColor, to: satColor + '99' },
-                { label: 'Total Correct', value: `${totalScore}/${e2 ? PART_TOTAL * 2 : PART_TOTAL}`, from: '#60A5FA', to: '#3B82F6' },
-                { label: 'Part 1', value: `${e1.score}/${PART_TOTAL} (${pct1}%)`, from: color1, to: color1 + '99' },
-                { label: 'Part 2', value: e2 && pct2 != null ? `${e2.score}/${PART_TOTAL} (${pct2}%)` : '—', from: color2 ?? '#94A3B8', to: (color2 ?? '#94A3B8') + '99' },
-              ].map(s => (
-                <div
-                  key={s.label}
-                  className="rounded-2xl border border-white/10 p-5"
-                  style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))', boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}
-                >
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
-                  <p
-                    className="text-2xl font-extrabold tracking-tight"
-                    style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-                  >
-                    {s.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Per-part question lists */}
-            {([{ label: 'Part 1', record: e1, answers: answers1 }, { label: 'Part 2', record: e2, answers: answers2 }] as const).map(({ label, record, answers }) => {
-              if (!record || answers.length === 0) return null
+            {parts.map(({ label, record, answers: partAnswers }) => {
+              if (!record) return null
               const partPct = Math.round(record.score / PART_TOTAL * 100)
               return (
-                <div
-                  key={label}
-                  className="rounded-2xl border border-white/10 overflow-hidden mb-6"
-                  style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
-                >
-                  <div className="px-7 py-5 border-b border-white/8 flex items-center justify-between">
-                    <h2 className="font-extrabold text-white text-lg tracking-tight">{label} — {record.score}/{PART_TOTAL}</h2>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                <div key={label} className="rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+                  {/* Part header */}
+                  <div
+                    className="px-5 py-3 flex items-center justify-between"
+                    style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--table-header-bg)' }}
+                  >
+                    <h2 className="font-extrabold text-base tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                      {label} — {record.score}/{PART_TOTAL}
+                    </h2>
+                    <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                       {partPct}% correct
                     </span>
                   </div>
-                  <div className="divide-y divide-white/5">
-                    {answers.map((a, i) => {
-                      const prob = a.problem as any
-                      const expanded = expandedExplanations.has(a.id)
+
+                  {/* Column headers — identical to ProblemsClient */}
+                  <div
+                    className="hidden md:grid items-center px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest select-none"
+                    style={{
+                      gridTemplateColumns: '2.5rem 5.5rem 1fr 13rem 5rem',
+                      gap: '0.75rem',
+                      color: 'var(--text-muted)',
+                      borderBottom: '1px solid var(--card-border)',
+                      background: 'var(--table-header-bg)',
+                    }}
+                  >
+                    <span className="text-right">#</span>
+                    <span>Difficulty</span>
+                    <span>Question</span>
+                    <span>Domain · Topic</span>
+                    <span className="text-right">Status</span>
+                  </div>
+
+                  {partAnswers.length === 0 ? (
+                    <div className="px-5 py-10 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                      No answer data available for this exam.
+                    </div>
+                  ) : (
+                    partAnswers.map((a, i) => {
+                      const p = prob(a)
                       return (
                         <div
                           key={a.id}
-                          className="px-7 py-5"
-                          style={a.is_correct
-                            ? { borderLeft: '3px solid rgba(16,185,129,0.4)' }
-                            : { borderLeft: '3px solid rgba(239,68,68,0.4)' }}
+                          onClick={() => setReviewItem({ answer: a, partLabel: label, rowNum: i + 1 })}
+                          className="flex md:grid items-center px-5 py-3.5 cursor-pointer transition-colors gap-3"
+                          style={{
+                            gridTemplateColumns: '2.5rem 5.5rem 1fr 13rem 5rem',
+                            borderBottom: '1px solid var(--card-border)',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--table-row-hover)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}
                         >
-                          <div className="flex items-start gap-3 mb-2">
-                            <span
-                              className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-                              style={a.is_correct
-                                ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)' }
-                                : { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }}
-                            >
-                              {i + 1}
-                            </span>
-                            <p className="text-sm text-slate-200 leading-relaxed flex-1">{prob?.question ?? '—'}</p>
-                          </div>
-                          <div className="ml-9 flex flex-wrap gap-6 text-xs text-slate-400 mb-3">
-                            <span>
-                              Your answer:{' '}
-                              <span className={`font-bold ${a.is_correct ? 'text-green-400' : 'text-red-400'}`}>
-                                {a.user_answer || '—'}
+                          {/* # */}
+                          <span className="hidden md:block text-right text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                            {i + 1}
+                          </span>
+
+                          {/* Difficulty */}
+                          <div className="flex-shrink-0">
+                            {p?.difficulty ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize" style={diffStyle(p.difficulty)}>
+                                {p.difficulty}
                               </span>
-                            </span>
-                            <span>
-                              Correct answer: <span className="font-bold text-slate-200">{prob?.solution ?? '—'}</span>
-                            </span>
+                            ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                           </div>
-                          {prob?.explanation && (
-                            <div className="ml-9">
-                              <button
-                                onClick={() => toggleExplanation(a.id)}
-                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
-                              >
-                                {expanded ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}
-                                {expanded ? 'Hide' : 'Show'} Solution
-                              </button>
-                              {expanded && (
-                                <div
-                                  className="mt-2 p-4 rounded-xl text-sm text-amber-100/90 leading-relaxed"
-                                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}
-                                >
-                                  {prob.explanation}
-                                </div>
-                              )}
-                            </div>
-                          )}
+
+                          {/* Question — short ID */}
+                          <p className="flex-1 min-w-0 text-sm font-mono truncate" style={{ color: 'var(--text-primary)' }}>
+                            {p?.id ? p.id.slice(0, 8) : '—'}
+                          </p>
+
+                          {/* Domain · Topic */}
+                          <p className="hidden md:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                            {[p?.category, p?.topic].filter(Boolean).join(' · ') || '—'}
+                          </p>
+
+                          {/* Status */}
+                          <div className="flex items-center justify-end flex-shrink-0">
+                            {a.is_correct
+                              ? <Check size={13} strokeWidth={2.5} className="text-emerald-500" />
+                              : <X size={13} strokeWidth={2.5} className="text-red-400" />
+                            }
+                          </div>
                         </div>
                       )
-                    })}
-                  </div>
+                    })
+                  )}
                 </div>
               )
             })}
@@ -395,13 +590,7 @@ export default function ExamClient({
         </div>
 
         <div className="mb-10">
-          <div
-            className="rounded-2xl border border-white/10 overflow-hidden"
-            style={{
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.35), 0 0 60px rgba(59,130,246,0.08)',
-            }}
-          >
+          <div className="c-card rounded-2xl overflow-hidden" style={{ boxShadow: '0 0 60px rgba(59,130,246,0.08)' }}>
             <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #60A5FA, #6366F1)' }} />
             <div className="p-8">
               <h2 className="text-2xl font-extrabold text-white mb-3 tracking-tight">SAT Math Practice</h2>
@@ -437,15 +626,8 @@ export default function ExamClient({
           </div>
         </div>
 
-        {/* Exam History */}
         {examHistory.length > 0 && (
-          <div
-            className="rounded-2xl border border-white/10 overflow-hidden"
-            style={{
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-            }}
-          >
+          <div className="c-card rounded-2xl overflow-hidden">
             <div className="px-7 py-5 border-b border-white/8">
               <h2 className="font-extrabold text-white text-lg tracking-tight">Exam Records</h2>
             </div>
@@ -524,10 +706,7 @@ export default function ExamClient({
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">Part 1 Complete</h1>
           <p className="text-slate-400 mt-2">Results will be shown after Part 2.</p>
         </div>
-        <div
-          className="rounded-2xl border border-white/10 overflow-hidden mb-6"
-          style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))', boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}
-        >
+        <div className="c-card rounded-2xl overflow-hidden mb-6">
           <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #60A5FA, #6366F1)' }} />
           <div className="p-8 text-center">
             <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-slate-400 mb-8">
@@ -563,10 +742,7 @@ export default function ExamClient({
           </h1>
         </div>
 
-        <div
-          className="rounded-2xl border border-white/10 overflow-hidden mb-6"
-          style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))', boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}
-        >
+        <div className="c-card rounded-2xl overflow-hidden mb-6">
           <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${satColor}, ${satColor}55)` }} />
           <div className="p-10 text-center">
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">SAT Score</p>
@@ -612,11 +788,7 @@ export default function ExamClient({
         </div>
 
         {[{ label: 'Part 1', result: part1Result }, { label: 'Part 2', result: part2Result }].map(({ label, result }) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-white/10 overflow-hidden mb-4"
-            style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
-          >
+          <div key={label} className="c-card rounded-2xl overflow-hidden mb-4">
             <div className="px-7 py-5 border-b border-white/8">
               <h2 className="font-extrabold text-white tracking-tight">{label} Breakdown</h2>
             </div>
@@ -655,145 +827,400 @@ export default function ExamClient({
   const urgentTime = timeLeft <= 120
   const answeredCount = Object.keys(answers).length
   const partLabel = activePart === 1 ? 'Part 1' : 'Part 2'
+  const sortedChoices = (problem?.choices ?? []).sort((a, b) => a.order_index - b.order_index)
+  const selectedAnswer = answers[current] ?? null
+  const isLastQuestion = current === activeProblems.length - 1
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">SAT Practice — {partLabel}</h1>
-          <p className="text-sm text-slate-400 mt-0.5">{answeredCount} of {activeProblems.length} answered</p>
-        </div>
+  if (!mounted) return null
+
+  const overlay = (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--app-bg)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      {/* ── Full-screen image viewer ── */}
+      {examImageExpanded && problem?.image_url && (
         <div
-          className="flex items-center gap-2 px-4 py-2 rounded-full font-mono font-extrabold text-lg tabular-nums transition-all"
-          style={urgentTime
-            ? { background: 'rgba(239,68,68,0.12)', color: '#F87171', border: '1px solid rgba(239,68,68,0.4)', boxShadow: '0 0 24px rgba(239,68,68,0.25)' }
-            : { background: 'rgba(59,130,246,0.12)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.3)' }}
+          style={{ position: 'absolute', inset: 0, zIndex: 10, background: '#000', display: 'flex', flexDirection: 'column' }}
         >
-          {urgentTime && <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />}
-          {fmtTime(timeLeft)}
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '8px 12px', background: 'rgba(0,0,0,0.7)', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}
+          >
+            <button
+              onClick={() => setExamImageExpanded(false)}
+              style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'zoom-out' }}
+            onClick={() => setExamImageExpanded(false)}
+          >
+            <img
+              src={problem.image_url}
+              alt="Problem"
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+            />
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 11, color: '#475569', padding: '6px 0', flexShrink: 0 }}>
+            click to close
+          </p>
+        </div>
+      )}
+
+      {/* ── Header ── */}
+      <div
+        style={{
+          height: 52,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '0 20px',
+          borderBottom: '1px solid var(--card-border)',
+        }}
+      >
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          SAT Practice — {partLabel}
+        </span>
+        <span
+          style={{
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: 700,
+            background: 'var(--input-bg)',
+            color: 'var(--text-muted)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {current + 1}/{activeProblems.length}
+        </span>
+        {problem && (
+          <span
+            style={{
+              ...diffStyle(problem.difficulty),
+              padding: '2px 10px',
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 600,
+              textTransform: 'capitalize',
+              flexShrink: 0,
+            }}
+          >
+            {problem.difficulty}
+          </span>
+        )}
+        {problem?.category && (
+          <span
+            style={{
+              fontSize: 12,
+              color: 'var(--text-muted)',
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {problem.category}
+          </span>
+        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            {answeredCount}/{activeProblems.length} answered
+          </span>
+          <div
+            style={urgentTime
+              ? { background: 'rgba(239,68,68,0.12)', color: '#F87171', border: '1px solid rgba(239,68,68,0.4)', padding: '5px 14px', borderRadius: 999, fontFamily: 'monospace', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }
+              : { background: 'var(--input-bg)', color: '#3B82F6', border: '1px solid var(--input-border)', padding: '5px 14px', borderRadius: 999, fontFamily: 'monospace', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            {urgentTime && (
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#F87171', flexShrink: 0, animation: 'pulse 1s infinite' }} />
+            )}
+            {fmtTime(timeLeft)}
+          </div>
         </div>
       </div>
 
-      <div className="w-full bg-white/5 rounded-full h-2 mb-6 overflow-hidden">
+      {/* ── Progress bar ── */}
+      <div style={{ height: 2, background: 'var(--input-bg)', flexShrink: 0 }}>
         <div
-          className="h-2 rounded-full transition-all duration-500"
           style={{
+            height: '100%',
             width: `${((current + 1) / activeProblems.length) * 100}%`,
-            background: 'linear-gradient(90deg, #60A5FA, #6366F1)',
-            boxShadow: '0 0 12px rgba(96,165,250,0.6)',
+            background: 'linear-gradient(90deg, #3B82F6, #6366F1)',
+            transition: 'width 0.4s ease',
           }}
         />
       </div>
 
-      {problem && (
-        <div
-          className="rounded-2xl border border-white/10 p-7 md:p-9 mb-5"
-          style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
-        >
-          <div className="flex items-center gap-2.5 mb-5">
-            <span className="text-sm font-bold text-slate-500">Q{current + 1}</span>
-            <span className="text-[11px] px-2.5 py-1 rounded-full font-bold capitalize" style={diffStyle(problem.difficulty)}>
-              {problem.difficulty}
-            </span>
-            {problem.category && (
-              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold" style={{ background: 'rgba(59,130,246,0.1)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.2)' }}>
-                {problem.category}
-              </span>
-            )}
-          </div>
-
-          <p className="text-slate-100 text-base md:text-lg leading-relaxed mb-7 whitespace-pre-wrap font-medium">{problem.question}</p>
-
-          {problem.type === 'mc' ? (
-            <div className="space-y-3">
-              {(problem.choices ?? []).sort((a, b) => a.order_index - b.order_index).map(c => {
-                const isSelected = answers[current] === c.label
-                return (
-                  <label
-                    key={c.id}
-                    className="flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all duration-200"
-                    style={isSelected
-                      ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.5)' }
-                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+      {/* ── Problem area ── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {problem ? (
+          <>
+            {/* Left: question image or text */}
+            <div
+              style={{
+                width: '60%',
+                borderRight: '1px solid var(--card-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              {problem.image_url ? (
+                <>
+                  {!imageLoaded && (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '72%', height: '60%', borderRadius: 12, background: 'var(--input-bg)', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                    </div>
+                  )}
+                  <div
+                    style={{ flex: 1, display: imageLoaded ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'zoom-in' }}
+                    onClick={() => setExamImageExpanded(true)}
                   >
-                    <input type="radio" name={`q${current}`} value={c.label}
-                      checked={isSelected}
-                      onChange={() => setAnswers(a => ({ ...a, [current]: c.label }))}
-                      className="accent-blue-500 mt-0.5 shrink-0" />
-                    <span className="text-base font-bold text-slate-400 w-6 shrink-0">{c.label}.</span>
-                    <span className="text-base text-slate-200">{c.choice_text}</span>
-                  </label>
-                )
-              })}
+                    <img
+                      src={problem.image_url}
+                      alt="Problem"
+                      onLoad={() => setImageLoaded(true)}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                    />
+                  </div>
+                  {imageLoaded && (
+                    <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', padding: '6px 0', flexShrink: 0 }}>
+                      click to expand
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 24 }}>
+                  <div style={{ width: '100%', borderRadius: 12, border: '2px dashed var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 180, color: 'var(--text-muted)', fontSize: 14 }}>
+                    No image available
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <input
-              className="w-full px-4 py-3 rounded-xl text-base text-slate-200 transition-all duration-200 focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
-              onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-              onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.12)')}
-              placeholder="Type your answer…"
-              value={answers[current] ?? ''}
-              onChange={e => setAnswers(a => ({ ...a, [current]: e.target.value }))}
-            />
-          )}
-        </div>
-      )}
 
-      <div className="flex gap-3">
-        <button
-          onClick={() => setCurrent(c => c - 1)}
-          disabled={current === 0}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-semibold text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 min-h-[44px]"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
-        >
-          <ArrowLeft size={14} strokeWidth={2} /> Prev
-        </button>
+            {/* Right: answer + Next/Submit */}
+            <div
+              style={{
+                width: '40%',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '36px 40px',
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 20,
+                }}
+              >
+                Your Answer
+              </p>
 
-        {current < activeProblems.length - 1 ? (
-          <button
-            onClick={() => setCurrent(c => c + 1)}
-            className="flex-1 inline-flex items-center justify-center gap-2 py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.01] min-h-[44px]"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 24px rgba(59,130,246,0.35)' }}
-          >
-            Next <ArrowRight size={14} strokeWidth={2.5} />
-          </button>
+              {/* MC: A/B/C/D buttons */}
+              {problem.type === 'mc' && (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {sortedChoices.map(c => {
+                    const sel = selectedAnswer === c.label
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setAnswers(a => ({ ...a, [current]: c.label }))}
+                        style={{
+                          width: 54,
+                          height: 54,
+                          borderRadius: 12,
+                          border: sel ? '2px solid #3B82F6' : '2px solid var(--input-border)',
+                          color: sel ? '#3B82F6' : 'var(--text-muted)',
+                          background: sel ? 'rgba(59,130,246,0.12)' : 'var(--input-bg)',
+                          fontSize: 17,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Input: text box */}
+              {problem.type === 'input' && (
+                <div>
+                  <input
+                    type="text"
+                    value={answers[current] ?? ''}
+                    onChange={e => setAnswers(a => ({ ...a, [current]: e.target.value }))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !isLastQuestion) setCurrent(c => c + 1)
+                    }}
+                    placeholder="Enter your answer"
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      padding: '13px 16px',
+                      borderRadius: 12,
+                      background: 'var(--input-bg)',
+                      border: '2px solid #3B82F6',
+                      color: 'var(--text-primary)',
+                      fontSize: 15,
+                      fontFamily: 'monospace',
+                      outline: 'none',
+                    }}
+                  />
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                    fraction · decimal · integer
+                  </p>
+                </div>
+              )}
+
+              {/* Spacer */}
+              <div style={{ flex: 1 }} />
+
+              {/* Next / Submit button */}
+              {isLastQuestion ? (
+                <button
+                  onClick={() => {
+                    const unanswered = activeProblems.length - Object.keys(answers).length
+                    if (unanswered > 0 && !confirm(`${unanswered} unanswered question(s). Submit anyway?`)) return
+                    submitActivePart()
+                  }}
+                  disabled={submitting}
+                  style={{
+                    width: '100%',
+                    padding: '15px',
+                    borderRadius: 999,
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: 'white',
+                    background: submitting ? 'rgba(16,185,129,0.5)' : 'linear-gradient(135deg, #10B981, #059669)',
+                    boxShadow: '0 8px 24px rgba(16,185,129,0.35)',
+                    border: 'none',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {submitting
+                    ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Submitting…</>
+                    : <>{activePart === 1 ? 'Submit Part 1' : 'Submit Exam'} <Check size={15} strokeWidth={2.5} /></>
+                  }
+                </button>
+              ) : (
+                <button
+                  onClick={() => setCurrent(c => c + 1)}
+                  style={{
+                    width: '100%',
+                    padding: '15px',
+                    borderRadius: 999,
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: 'white',
+                    background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+                    boxShadow: '0 8px 24px rgba(59,130,246,0.35)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  Next <ArrowRight size={15} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+          </>
         ) : (
-          <button
-            onClick={() => {
-              const unanswered = activeProblems.length - Object.keys(answers).length
-              if (unanswered > 0 && !confirm(`${unanswered} unanswered question(s). Submit anyway?`)) return
-              submitActivePart()
-            }}
-            disabled={submitting}
-            className="flex-1 inline-flex items-center justify-center gap-2 py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.01] disabled:opacity-60 min-h-[44px]"
-            style={{ background: 'linear-gradient(135deg, #10B981, #059669)', boxShadow: '0 8px 24px rgba(16,185,129,0.35)' }}
-          >
-            {submitting ? (
-              <><Loader2 size={14} className="animate-spin" /> Submitting…</>
-            ) : (
-              <>{activePart === 1 ? 'Submit Part 1' : 'Submit Exam'} <Check size={14} strokeWidth={2.5} /></>
-            )}
-          </button>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
+            No problems available for this exam.
+          </div>
         )}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-1.5">
-        {activeProblems.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className="w-9 h-9 rounded-lg text-xs font-bold transition-all duration-200 hover:scale-110"
-            style={i === current
-              ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white', boxShadow: '0 0 16px rgba(59,130,246,0.5)' }
-              : i in answers
-                ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)' }
-                : { background: 'rgba(255,255,255,0.04)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            {i + 1}
-          </button>
-        ))}
+      {/* ── Bottom nav: Prev | 1-22 number grid ── */}
+      <div
+        style={{
+          height: 60,
+          flexShrink: 0,
+          borderTop: '1px solid var(--card-border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '0 16px',
+        }}
+      >
+        <button
+          onClick={() => setCurrent(c => c - 1)}
+          disabled={current === 0}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '6px 14px',
+            borderRadius: 999,
+            fontSize: 13,
+            fontWeight: 600,
+            background: 'var(--input-bg)',
+            border: '1px solid var(--input-border)',
+            color: 'var(--text-primary)',
+            cursor: current === 0 ? 'not-allowed' : 'pointer',
+            opacity: current === 0 ? 0.3 : 1,
+            flexShrink: 0,
+          }}
+        >
+          <ArrowLeft size={13} strokeWidth={2} /> Prev
+        </button>
+
+        {/* Scrollable number chips */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            gap: 5,
+            alignItems: 'center',
+            overflowX: 'auto',
+            padding: '2px 0',
+          }}
+        >
+          {activeProblems.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              style={
+                i === current
+                  ? { width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700, flexShrink: 0, background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white', boxShadow: '0 0 10px rgba(59,130,246,0.45)', border: 'none', cursor: 'pointer' }
+                  : i in answers
+                    ? { width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700, flexShrink: 0, background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer' }
+                    : { width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700, flexShrink: 0, background: 'var(--input-bg)', color: 'var(--text-muted)', border: '1px solid var(--input-border)', cursor: 'pointer' }
+              }
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
+
+  return createPortal(overlay, document.body)
 }

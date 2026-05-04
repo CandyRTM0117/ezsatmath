@@ -101,6 +101,10 @@ html {
   animation: fade-in 300ms ease-out both;
 }
 
+.loading-delay {
+  animation: fade-in 200ms ease-out 300ms both;
+}
+
 @keyframes zoom-in-95 {
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
@@ -122,6 +126,15 @@ html {
   );
   background-size: 800px 100%;
   animation: shimmer 1.6s linear infinite;
+}
+html.light .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.04) 0%,
+    rgba(0,0,0,0.08) 50%,
+    rgba(0,0,0,0.04) 100%
+  );
+  background-size: 800px 100%;
 }
 
 @keyframes spin-slow {
@@ -197,6 +210,44 @@ html.light .app-main .text-slate-400:not(button):not(a):not([role="button"]) {
 html.light .app-main .text-slate-500:not(button):not(a):not([role="button"]) {
   color: #94A3B8;
 }
+
+/* ── Reusable card / row utility classes ─────────────────────────────────── */
+
+/* Primary card surface */
+.c-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+html.light .c-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+
+/* Nested / inner card (slightly more subtle) */
+.c-card-inner {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+html.light .c-card-inner {
+  background: #F1F5F9;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* List row inside a card */
+.c-row {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+html.light .c-row {
+  background: #F8FAFC;
+  border: 1px solid rgba(0,0,0,0.07);
+}
+
+/* Progress bar track */
+html.light .bg-white\/5 { background: rgba(0,0,0,0.08); }
+html.light .bg-white\/\[0\.05\] { background: rgba(0,0,0,0.08); }
 
 /* Backdrop blur for entire app when modal is open */
 body.modal-open > div:first-child {

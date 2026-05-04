@@ -62,18 +62,14 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
       <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-3xl mx-auto">
         {/* Free */}
         <div
-          className="relative rounded-2xl p-8 flex flex-col transition-all duration-300"
+          className={['relative rounded-2xl p-8 flex flex-col transition-all duration-300', !isSubscribed ? '' : 'c-card'].join(' ')}
           style={!isSubscribed
             ? {
                 background: 'linear-gradient(145deg, rgba(59,130,246,0.08), rgba(255,255,255,0.02))',
                 border: '1px solid rgba(59,130,246,0.4)',
                 boxShadow: '0 0 0 4px rgba(59,130,246,0.08), 0 24px 60px rgba(0,0,0,0.35)',
               }
-            : {
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-              }}
+            : undefined}
         >
           {!isSubscribed && (
             <span
@@ -92,7 +88,7 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
               <li key={f} className="flex items-center gap-3 text-sm text-slate-300">
                 <span
                   className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                 >
                   <Check size={11} strokeWidth={2.5} className="text-slate-400" />
                 </span>
@@ -121,18 +117,14 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
 
         {/* Pro */}
         <div
-          className="relative rounded-2xl p-8 flex flex-col transition-all duration-300"
+          className={['relative rounded-2xl p-8 flex flex-col transition-all duration-300', !isSubscribed ? 'c-card' : ''].join(' ')}
           style={isSubscribed
             ? {
                 background: 'linear-gradient(145deg, rgba(59,130,246,0.15), rgba(29,78,216,0.06))',
                 border: '1px solid rgba(59,130,246,0.5)',
                 boxShadow: '0 0 60px rgba(59,130,246,0.25), 0 24px 60px rgba(0,0,0,0.4)',
               }
-            : {
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-              }}
+            : undefined}
         >
           {isSubscribed && (
             <span

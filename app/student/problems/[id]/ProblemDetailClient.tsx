@@ -14,11 +14,11 @@ const diffStyle = (d: string) => ({
 function mcStyle(label: string, selectedMC: string | null, submitted: boolean, correctLabel: string | null) {
   if (!submitted) {
     if (selectedMC === label) return { borderColor: '#3B82F6', color: '#3B82F6', background: 'rgba(59,130,246,0.12)' }
-    return { borderColor: 'rgba(255,255,255,0.15)', color: '#94A3B8', background: 'rgba(255,255,255,0.03)' }
+    return { borderColor: 'var(--input-border)', color: '#94A3B8', background: 'var(--input-bg)' }
   }
   if (label === correctLabel) return { borderColor: '#10B981', color: '#34D399', background: 'rgba(16,185,129,0.12)' }
   if (label === selectedMC)   return { borderColor: '#EF4444', color: '#F87171', background: 'rgba(239,68,68,0.12)' }
-  return { borderColor: 'rgba(255,255,255,0.08)', color: '#475569', background: 'transparent' }
+  return { borderColor: 'var(--input-border)', color: '#475569', background: 'transparent' }
 }
 
 // ---------------------------------------------------------------------------
@@ -203,11 +203,11 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
         <ImageViewer src={problem.image_url} onClose={() => setExpanded(false)} />
       )}
 
-      <div className="flex flex-col" style={{ height: '100vh', background: '#0B1224', color: '#E2E8F0' }}>
+      <div className="flex flex-col" style={{ height: '100vh', background: 'var(--app-bg)', color: 'var(--text-primary)' }}>
         {/* Header */}
         <div
           className="flex items-center gap-3 px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', height: 52 }}
+          style={{ borderBottom: '1px solid var(--card-border)', height: 52 }}
         >
           <span
             className="px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize flex-shrink-0"
@@ -218,7 +218,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
 
           <span
             className="px-2 py-0.5 rounded text-xs font-mono font-bold flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,0.08)', color: '#CBD5E1' }}
+            style={{ background: 'var(--input-bg)', color: 'var(--text-muted)' }}
           >
             {shortId}
           </span>
@@ -248,7 +248,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
           {/* Left — problem image / text */}
           <div
             className="overflow-y-auto flex flex-col"
-            style={{ width: '62%', borderRight: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ width: '62%', borderRight: '1px solid var(--card-border)' }}
           >
             {problem.image_url ? (
               <div className="flex flex-col h-full">
@@ -323,7 +323,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
                     disabled={submitted}
                     placeholder="Enter your answer"
                     className="w-full px-4 py-3 rounded-xl font-mono text-base outline-none disabled:opacity-60"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid #3B82F6', color: '#E2E8F0' }}
+                    style={{ background: 'var(--input-bg)', border: '2px solid #3B82F6', color: 'var(--input-color)' }}
                   />
                   <p className="text-xs text-slate-500 mt-1.5">fraction · decimal · integer</p>
                 </div>
@@ -350,9 +350,9 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
                   {problem.explanation && (
                     <div
                       className="rounded-xl p-4"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                      style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
                     >
-                      <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                         {problem.explanation}
                       </p>
                     </div>
@@ -367,7 +367,7 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
                 <button
                   onClick={handleTryAgain}
                   className="w-full py-3 rounded-full text-sm font-semibold transition-colors text-slate-400 hover:text-slate-200"
-                  style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+                  style={{ border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
                 >
                   Try Again
                 </button>
@@ -380,8 +380,8 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
                   submitted
                     ? { background: isCorrect ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: isCorrect ? '#34D399' : '#F87171' }
                     : canSubmit
-                    ? { background: '#1E293B', color: '#94A3B8' }
-                    : { background: 'rgba(255,255,255,0.04)', color: '#475569' }
+                    ? { background: 'var(--input-textarea-bg)', color: 'var(--text-muted)' }
+                    : { background: 'var(--input-bg)', color: '#475569' }
                 }
               >
                 {submitted ? (isCorrect ? '✓ Correct!' : 'Incorrect') : 'Submit Answer'}

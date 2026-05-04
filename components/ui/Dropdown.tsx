@@ -34,13 +34,14 @@ export default function Dropdown({ value, onChange, options, className = '' }: D
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-200 transition-all duration-200 whitespace-nowrap select-none min-w-[10rem]"
+        className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap select-none min-w-[10rem]"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--input-bg)',
+          border: '1px solid var(--input-border)',
+          color: 'var(--text-primary)',
         }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--input-textarea-bg)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'var(--input-bg)')}
       >
         <span>{current?.label ?? 'Select'}</span>
         <ChevronDown
@@ -52,11 +53,11 @@ export default function Dropdown({ value, onChange, options, className = '' }: D
       </button>
 
       <div
-        className="absolute top-full left-0 z-30 mt-2 min-w-full overflow-hidden rounded-xl shadow-2xl shadow-black/40"
+        className="absolute top-full left-0 z-30 mt-2 min-w-full overflow-hidden rounded-xl shadow-2xl shadow-black/20"
         style={{
-          background: 'rgba(15,23,42,0.95)',
+          background: 'var(--app-bg-alt)',
           backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid var(--card-border)',
           opacity: open ? 1 : 0,
           transform: open ? 'translateY(0) scale(1)' : 'translateY(-6px) scale(0.97)',
           pointerEvents: open ? 'auto' : 'none',
@@ -78,7 +79,7 @@ export default function Dropdown({ value, onChange, options, className = '' }: D
             }`}
             style={value === opt.value ? { background: 'rgba(59,130,246,0.12)' } : undefined}
             onMouseEnter={e => {
-              if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'
+              if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = 'var(--input-bg)'
             }}
             onMouseLeave={e => {
               if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = ''

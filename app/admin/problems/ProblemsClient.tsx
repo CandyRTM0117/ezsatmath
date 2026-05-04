@@ -29,9 +29,9 @@ const EMPTY_FORM = {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#E2E8F0',
+  background: 'var(--input-bg)',
+  border: '1px solid var(--input-border)',
+  color: 'var(--input-color)',
 }
 
 const diffStyle = (d: string): React.CSSProperties => ({
@@ -183,7 +183,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     e.target.style.borderColor = 'rgba(59,130,246,0.5)'
   }
   const inputBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+    e.target.style.borderColor = 'var(--input-border)'
   }
 
   return (
@@ -219,9 +219,9 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
             className="rounded-2xl w-full max-w-2xl p-7 zoom-in-95"
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#0F172A',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
+              background: 'var(--app-bg-alt)',
+              border: '1px solid var(--card-border)',
+              boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.1)',
             }}
           >
             <div className="flex items-center justify-between mb-5">
@@ -353,9 +353,9 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                   type="button"
                   onClick={closeForm}
                   className="flex-1 py-2.5 rounded-full text-sm font-semibold text-slate-200 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--input-textarea-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--input-bg)')}
                 >
                   Cancel
                 </button>
@@ -366,15 +366,9 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
         document.body
       )}
 
-      <div
-        className="rounded-2xl border border-white/10 overflow-hidden"
-        style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-        }}
-      >
+      <div className="c-card rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <thead style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--table-header-border)' }}>
             <tr>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Question</th>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Type</th>
@@ -393,7 +387,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                   <p className="text-slate-400 truncate">{p.question}</p>
                 </td>
                 <td className="px-5 py-4">
-                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest" style={{ background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.08)' }}>{p.type}</span>
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest" style={{ background: 'var(--input-bg)', color: 'var(--text-muted)', border: '1px solid var(--input-border)' }}>{p.type}</span>
                 </td>
                 <td className="px-5 py-4">
                   <span className="px-2.5 py-1 rounded-full text-[11px] font-bold capitalize" style={diffStyle(p.difficulty)}>{p.difficulty}</span>

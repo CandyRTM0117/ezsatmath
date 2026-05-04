@@ -162,11 +162,7 @@ export default function AnalyticsClient({
         {STATS.map(s => (
           <div
             key={s.label}
-            className="rounded-2xl border border-white/10 p-5 transition-all duration-300"
-            style={{
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-            }}
+            className="c-card rounded-2xl p-5 transition-all duration-300"
           >
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
             <p
@@ -184,13 +180,7 @@ export default function AnalyticsClient({
         ))}
       </div>
 
-      <div
-        className="rounded-2xl border border-white/10 p-7 mb-8"
-        style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-        }}
-      >
+      <div className="c-card rounded-2xl p-7 mb-8">
         <div className="flex items-center justify-between mb-7">
           <h2 className="font-extrabold text-white text-lg tracking-tight">Problems Tried — {monthName}</h2>
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Daily activity</span>
@@ -207,14 +197,14 @@ export default function AnalyticsClient({
                     ? 'linear-gradient(180deg, #A78BFA, #7C3AED)'
                     : d.count > 0
                       ? 'linear-gradient(180deg, #60A5FA, #3B82F6)'
-                      : 'rgba(255,255,255,0.04)',
+                      : 'var(--input-bg)',
                   boxShadow: d.count > 0 ? (d.isToday ? '0 0 12px rgba(167,139,250,0.5)' : '0 0 12px rgba(96,165,250,0.4)') : 'none',
                 }}
               />
               {d.count > 0 && (
                 <div
                   className="absolute -top-9 left-1/2 -translate-x-1/2 text-white text-xs px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-10"
-                  style={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ background: 'var(--app-bg-alt)', border: '1px solid var(--card-border)' }}
                 >
                   {d.count} · {d.date.slice(5)}
                 </div>
@@ -286,13 +276,7 @@ export default function AnalyticsClient({
       )}
 
       {/* Exam History */}
-      <div
-        className="rounded-2xl border border-white/10 overflow-hidden"
-        style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-        }}
-      >
+      <div className="c-card rounded-2xl overflow-hidden">
         <div className="px-7 py-5 border-b border-white/8">
           <h2 className="font-extrabold text-white text-lg tracking-tight">Exam History</h2>
         </div>
@@ -337,13 +321,13 @@ export default function AnalyticsClient({
 
                   {/* Expanded: Part 1 + Part 2 breakdown */}
                   {isOpen && (
-                    <div className="px-7 pb-5 space-y-4" style={{ background: 'rgba(255,255,255,0.015)' }}>
+                    <div className="c-card-inner px-7 pb-5 space-y-4">
                       {[session.part1, session.part2].map((part, pi) => {
                         if (!part) return null
                         const pp = Math.round(part.score / part.total * 100)
                         const pc = pp >= 80 ? '#34D399' : pp >= 50 ? '#FBBF24' : '#F87171'
                         return (
-                          <div key={part.id} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <div key={part.id} className="c-row rounded-xl p-4">
                             <div className="flex justify-between items-center mb-2">
                               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Part {part.part}</span>
                               <span className="text-sm font-extrabold tabular-nums" style={{ color: pc }}>

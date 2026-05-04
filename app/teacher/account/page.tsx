@@ -26,13 +26,7 @@ export default async function TeacherAccountPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Account Info */}
-        <div
-          className="rounded-2xl border border-white/10 p-7"
-          style={{
-            background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-          }}
-        >
+        <div className="c-card rounded-2xl p-7">
           <h2 className="font-extrabold text-white text-lg mb-6 tracking-tight">Account Info</h2>
           <div className="space-y-4">
             {[

@@ -5,9 +5,9 @@ import { KeyRound, Eye, EyeOff, Check, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const inputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#E2E8F0',
+  background: 'var(--input-bg)',
+  border: '1px solid var(--input-border)',
+  color: 'var(--input-color)',
 }
 
 export default function ChangePasswordForm({ email }: { email: string }) {
@@ -45,13 +45,7 @@ export default function ChangePasswordForm({ email }: { email: string }) {
   }
 
   return (
-    <div
-      className="rounded-2xl border border-white/10 p-7"
-      style={{
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-      }}
-    >
+    <div className="c-card rounded-2xl p-7">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}>
           <KeyRound size={16} strokeWidth={1.75} className="text-blue-300" />
@@ -87,7 +81,7 @@ export default function ChangePasswordForm({ email }: { email: string }) {
               className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all pr-10"
               style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-              onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+              onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
             />
             {toggle && (
               <button

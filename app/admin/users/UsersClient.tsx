@@ -7,9 +7,9 @@ import Dropdown from '@/components/ui/Dropdown'
 import type { User } from '@/types'
 
 const inputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#E2E8F0',
+  background: 'var(--input-bg)',
+  border: '1px solid var(--input-border)',
+  color: 'var(--input-color)',
 }
 
 export default function UsersClient({ initialUsers }: { initialUsers: User[] }) {
@@ -94,9 +94,9 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
             className="rounded-2xl w-full max-w-md p-7 zoom-in-95"
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#0F172A',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
+              background: 'var(--app-bg-alt)',
+              border: '1px solid var(--card-border)',
+              boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.1)',
             }}
           >
             <div className="flex items-center justify-between mb-5">
@@ -113,7 +113,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+                onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
               />
               {!editUser && (
                 <>
@@ -126,7 +126,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+                    onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
                   />
                   <input
                     type="password"
@@ -137,7 +137,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
                     value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-                    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+                    onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
                   />
                 </>
               )}
@@ -165,9 +165,9 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
                   type="button"
                   onClick={closeModal}
                   className="flex-1 py-2.5 rounded-full text-sm font-semibold text-slate-200 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--input-textarea-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--input-bg)')}
                 >
                   Cancel
                 </button>
@@ -177,15 +177,9 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
         </div>
       )}
 
-      <div
-        className="rounded-2xl border border-white/10 overflow-hidden"
-        style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-        }}
-      >
+      <div className="c-card rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <thead style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--table-header-border)' }}>
             <tr>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Name</th>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Email</th>

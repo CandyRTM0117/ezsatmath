@@ -155,10 +155,10 @@ export default function ProblemsClient({
             placeholder="Search problems…"
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-11 pr-4 py-3 rounded-xl text-sm text-slate-200 transition-all duration-200 focus:outline-none min-h-[44px]"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+            className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200 focus:outline-none min-h-[44px]"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
             onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
           />
         </div>
         <Dropdown
@@ -314,10 +314,10 @@ export default function ProblemsClient({
                       style={{ background: 'var(--app-bg-alt)' }}
                     >
                       <div className="w-64 flex flex-col gap-3">
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)', width: '100%' }} />
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)', width: '80%' }} />
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)', width: '90%' }} />
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.05)', width: '70%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '100%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '80%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '90%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '70%' }} />
                       </div>
                       <Loader2 size={20} className="animate-spin text-slate-600 mt-2" />
                     </div>
@@ -347,7 +347,7 @@ export default function ProblemsClient({
                     ) : (
                       <div
                         className="m-6 rounded-xl flex items-center justify-center text-slate-600 text-sm"
-                        style={{ minHeight: 180, border: '2px dashed rgba(255,255,255,0.08)' }}
+                        style={{ minHeight: 180, border: '2px dashed var(--card-border)' }}
                       >
                         problem image
                       </div>
@@ -441,7 +441,7 @@ export default function ProblemsClient({
                         className="w-full py-4 rounded-full font-semibold text-base transition-all"
                         style={answer && !submitting
                           ? { background: '#2563EB', color: '#fff', boxShadow: '0 0 20px rgba(37,99,235,0.4)' }
-                          : { background: 'rgba(255,255,255,0.04)', color: '#475569' }}
+                          : { background: 'var(--input-bg)', color: '#475569' }}
                       >
                         {submitting
                           ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Submitting…</span>
@@ -450,8 +450,8 @@ export default function ProblemsClient({
                     ) : (
                       <button
                         onClick={() => { setResult(null); setAnswer('') }}
-                        className="w-full py-4 rounded-full font-semibold text-sm text-slate-300 transition-colors"
-                        style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+                        className="w-full py-4 rounded-full font-semibold text-sm transition-colors"
+                        style={{ border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
                       >
                         Try Again
                       </button>

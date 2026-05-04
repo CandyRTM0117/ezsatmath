@@ -88,9 +88,9 @@ export default function ExamTrackerClient({ initialExams }: { initialExams: Exam
             className="rounded-2xl w-full max-w-2xl p-7 zoom-in-95"
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#0F172A',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)',
+              background: 'var(--app-bg-alt)',
+              border: '1px solid var(--card-border)',
+              boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.1)',
             }}
           >
             {/* Header */}
@@ -119,8 +119,7 @@ export default function ExamTrackerClient({ initialExams }: { initialExams: Exam
                 return (
                   <div
                     key={label}
-                    className="rounded-xl border border-white/10 p-4"
-                    style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))' }}
+                    className="c-card rounded-xl p-4"
                   >
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{label}</p>
                     <p className="text-lg font-extrabold mb-1" style={{ color }}>
@@ -178,15 +177,9 @@ export default function ExamTrackerClient({ initialExams }: { initialExams: Exam
         </div>
       )}
 
-      <div
-        className="rounded-2xl border border-white/10 overflow-hidden"
-        style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-        }}
-      >
+      <div className="c-card rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <thead style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--table-header-border)' }}>
             <tr>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Student</th>
               <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Part</th>
@@ -204,7 +197,7 @@ export default function ExamTrackerClient({ initialExams }: { initialExams: Exam
                 <tr key={e.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.02]">
                   <td className="px-5 py-4 font-semibold text-white">{e.user?.name ?? e.user?.email ?? '—'}</td>
                   <td className="px-5 py-4">
-                    <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest" style={{ background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.08)' }}>Part {e.part}</span>
+                    <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest" style={{ background: 'var(--input-bg)', color: 'var(--text-muted)', border: '1px solid var(--input-border)' }}>Part {e.part}</span>
                   </td>
                   <td className="px-5 py-4">
                     <span className="font-bold" style={{ color }}>

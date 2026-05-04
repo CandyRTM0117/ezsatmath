@@ -79,11 +79,7 @@ export default async function DashboardPage() {
           return (
             <div
               key={s.key}
-              className="group rounded-2xl p-5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
-              style={{
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02) inset',
-              }}
+              className="c-card group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
             >
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
@@ -113,13 +109,7 @@ export default async function DashboardPage() {
       {/* Bottom cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent exams */}
-        <div
-          className="rounded-2xl border border-white/10 p-7"
-          style={{
-            background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-          }}
-        >
+        <div className="c-card rounded-2xl p-7">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-extrabold text-white text-lg tracking-tight">Recent Exams</h2>
             <Link
@@ -139,7 +129,7 @@ export default async function DashboardPage() {
                 const color = pct >= 80 ? '#34D399' : pct >= 50 ? '#FBBF24' : '#F87171'
                 const dateStr = new Date(session.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
                 return (
-                  <div key={idx} className="rounded-xl p-4 border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                  <div key={idx} className="c-row rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <span className="text-sm font-semibold text-slate-200">Full Test</span>
@@ -180,13 +170,7 @@ export default async function DashboardPage() {
 
         {/* Account info */}
         <div className="space-y-6">
-          <div
-            className="rounded-2xl border border-white/10 p-7"
-            style={{
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-            }}
-          >
+          <div className="c-card rounded-2xl p-7">
             <h2 className="font-extrabold text-white text-lg mb-6 tracking-tight">Account Info</h2>
             <div className="space-y-4">
               {[

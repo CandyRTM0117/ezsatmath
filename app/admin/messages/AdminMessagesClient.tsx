@@ -126,16 +126,13 @@ export default function AdminMessagesClient({
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search users…"
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs text-slate-200 focus:outline-none transition-all"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs focus:outline-none transition-all"
+          style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
           onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-          onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+          onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
         />
       </div>
-      <div
-        className="flex-1 overflow-y-auto rounded-2xl border border-white/10 overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}
-      >
+      <div className="c-card flex-1 overflow-y-auto rounded-2xl overflow-hidden">
         {filteredUsers.length === 0 ? (
           <div className="p-6 text-center text-slate-500 text-xs">No users found</div>
         ) : (
@@ -310,7 +307,7 @@ export default function AdminMessagesClient({
       )}
 
       {/* Input */}
-      <div className="px-3 py-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="px-3 py-3 shrink-0" style={{ borderTop: '1px solid var(--divider-color)' }}>
         <div className="flex gap-2 items-end">
           <textarea
             value={content}
@@ -335,8 +332,7 @@ export default function AdminMessagesClient({
       </div>
     </div>
   ) : (
-    <div className="hidden md:flex flex-1 items-center justify-center text-slate-500 rounded-2xl border border-white/10"
-      style={{ background: 'rgba(255,255,255,0.02)' }}>
+    <div className="c-card hidden md:flex flex-1 items-center justify-center text-slate-500 rounded-2xl">
       <p className="text-sm">Select a user to view messages</p>
     </div>
   )
@@ -349,8 +345,7 @@ export default function AdminMessagesClient({
       </div>
 
       {sidebarUsers.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 p-14 text-center text-slate-500"
-          style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}>
+        <div className="c-card rounded-2xl p-14 text-center text-slate-500">
           No conversations yet.
         </div>
       ) : (

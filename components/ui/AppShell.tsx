@@ -24,7 +24,7 @@ export default function AppShell({ role, userName, userId, children }: AppShellP
 
   if (isFullscreen) {
     return (
-      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: '#0B1224' }}>
+      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: 'var(--app-bg)' }}>
         {children}
       </div>
     )

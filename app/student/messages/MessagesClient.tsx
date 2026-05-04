@@ -86,17 +86,19 @@ export default function MessagesClient({
   }, [thread.length, view])
 
   useEffect(() => {
-    if (!selectedTeacher) return
-    const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select('*, sender:users!messages_sender_id_fkey(id, name, email), receiver:users!messages_receiver_id_fkey(id, name, email), problem:problems(id, title, question)')
-        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-        .order('created_at', { ascending: true })
-      if (data) setMessages(data as any[])
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [selectedTeacher, userId, supabase])
+    const channel = supabase
+      .channel('messages-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, async () => {
+        const { data } = await supabase
+          .from('messages')
+          .select('*, sender:users!messages_sender_id_fkey(id, name, email), receiver:users!messages_receiver_id_fkey(id, name, email), problem:problems(id, title, question)')
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .order('created_at', { ascending: true })
+        if (data) setMessages(data as any[])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [userId, supabase])
 
   async function sendMessage() {
     if (!content.trim() || !selectedTeacher || sending) return
@@ -150,7 +152,7 @@ export default function MessagesClient({
         </div>
 
         {teachers.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 p-14 text-center text-slate-500" style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}>
+          <div className="c-card rounded-2xl p-14 text-center text-slate-500">
             No teachers available yet.
           </div>
         ) : (
@@ -169,10 +171,7 @@ export default function MessagesClient({
               />
             </div>
 
-            <div
-              className="rounded-2xl border border-white/10 overflow-hidden"
-              style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))' }}
-            >
+            <div className="c-card rounded-2xl overflow-hidden">
               {filteredTeachers.length === 0 ? (
                 <div className="p-10 text-center text-slate-500 text-sm">No conversations found</div>
               ) : (

@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function ProblemsLoading() {
   return (
-    <div className="fade-in">
+    <div className="loading-delay">
       <div className="mb-6 space-y-3">
         <Skeleton className="h-9 w-44 rounded-xl" />
         <Skeleton className="h-4 w-40 rounded-lg" />
