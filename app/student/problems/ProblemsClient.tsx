@@ -183,14 +183,14 @@ export default function ProblemsClient({
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-1.5 mb-6 flex-wrap">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={safePage === 1}
-            className="p-2 rounded-lg text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="p-2 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            style={{ background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
           >
-            <ChevronLeft size={16} strokeWidth={2} />
+            <ChevronLeft size={15} strokeWidth={2} />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
             <button
@@ -198,8 +198,8 @@ export default function ProblemsClient({
               onClick={() => setPage(n)}
               className="w-8 h-8 rounded-lg text-xs font-bold transition-all"
               style={n === safePage
-                ? { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: 'white' }
-                : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8' }}
+                ? { background: '#3B82F6', color: 'white', border: '1px solid #3B82F6' }
+                : { background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
             >
               {n}
             </button>
@@ -207,12 +207,12 @@ export default function ProblemsClient({
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={safePage === totalPages}
-            className="p-2 rounded-lg text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="p-2 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            style={{ background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
           >
-            <ChevronRight size={16} strokeWidth={2} />
+            <ChevronRight size={15} strokeWidth={2} />
           </button>
-          <span className="text-xs text-slate-500 ml-1">Page {safePage} of {totalPages}</span>
+          <span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>Page {safePage} of {totalPages}</span>
         </div>
       )}
 
@@ -233,15 +233,15 @@ export default function ProblemsClient({
                 "
                 onClick={e => e.stopPropagation()}
                 style={{
-                  background: '#0F172A',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  boxShadow: '0 40px 80px rgba(0,0,0,0.6)',
+                  background: 'var(--app-bg-alt)',
+                  border: '1px solid var(--card-border)',
+                  boxShadow: '0 40px 80px rgba(0,0,0,0.4)',
                 }}
               >
                 {/* Mobile header — back button */}
                 <div
                   className="flex md:hidden items-center gap-3 px-4 py-3 flex-shrink-0"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0F172A' }}
+                  style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--app-bg-alt)' }}
                 >
                   <button
                     onClick={closeProblem}
@@ -272,7 +272,7 @@ export default function ProblemsClient({
                 {/* Desktop header */}
                 <div
                   className="hidden md:flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ borderBottom: '1px solid var(--card-border)' }}
                 >
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize shrink-0" style={diffStyle(selected.difficulty)}>
                     {selected.difficulty}
@@ -311,7 +311,7 @@ export default function ProblemsClient({
                   {imgLoading && (
                     <div
                       className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
-                      style={{ background: '#0F172A' }}
+                      style={{ background: 'var(--app-bg-alt)' }}
                     >
                       <div className="w-64 flex flex-col gap-3">
                         <div className="h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)', width: '100%' }} />
@@ -374,7 +374,7 @@ export default function ProblemsClient({
                               className="w-14 h-14 rounded-xl border-2 font-mono font-bold text-lg transition-all"
                               style={isSelected
                                 ? { borderColor: '#3B82F6', color: '#3B82F6', background: 'rgba(59,130,246,0.08)' }
-                                : { borderColor: 'rgba(255,255,255,0.15)', color: '#94A3B8', background: 'rgba(255,255,255,0.03)' }}
+                                : { borderColor: 'var(--card-border)', color: 'var(--text-muted)', background: 'var(--input-bg)' }}
                             >
                               {c.label}
                             </button>
@@ -393,7 +393,7 @@ export default function ProblemsClient({
                           onKeyDown={e => e.key === 'Enter' && submit()}
                           placeholder="Enter your answer"
                           className="w-full px-4 py-3 rounded-xl font-mono text-base outline-none"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid #3B82F6', color: '#E2E8F0' }}
+                          style={{ background: 'var(--input-bg)', border: '2px solid #3B82F6', color: 'var(--text-primary)' }}
                         />
                         <p className="text-xs text-slate-500 mt-1.5">fraction · decimal · integer</p>
                       </div>
@@ -412,13 +412,13 @@ export default function ProblemsClient({
                         </div>
                         <div
                           className="rounded-xl p-4 min-h-24"
-                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                          style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
                         >
                           {result.explanation ? (
-                            <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{result.explanation}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-primary)' }}>{result.explanation}</p>
                           ) : (
-                            <div className="h-16 rounded-lg flex items-center justify-center text-slate-600 text-sm"
-                              style={{ border: '2px dashed rgba(255,255,255,0.08)' }}>
+                            <div className="h-16 rounded-lg flex items-center justify-center text-sm"
+                              style={{ border: '2px dashed var(--card-border)', color: 'var(--text-muted)' }}>
                               solution image
                             </div>
                           )}
@@ -481,80 +481,114 @@ export default function ProblemsClient({
         document.body
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {paginated.map(p => {
+      {/* Problem list */}
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+        {/* Column headers */}
+        <div
+          className="hidden md:grid items-center px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest select-none"
+          style={{
+            gridTemplateColumns: '2.5rem 5.5rem 1fr 13rem 5rem',
+            gap: '0.75rem',
+            color: 'var(--text-muted)',
+            borderBottom: '1px solid var(--card-border)',
+            background: 'var(--table-header-bg)',
+          }}
+        >
+          <span className="text-right">#</span>
+          <span>Difficulty</span>
+          <span>Question</span>
+          <span>Domain · Topic</span>
+          <span className="text-right">Status</span>
+        </div>
+
+        {paginated.map((p, i) => {
           const attempted = p.id in attemptMap
           const correct = attemptMap[p.id]
           const isBookmarked = bookmarks.has(p.id)
+          const rowNum = (safePage - 1) * PAGE_SIZE + i + 1
           return (
             <div
               key={p.id}
               onClick={() => openProblem(p)}
-              className="cursor-pointer text-left rounded-2xl p-6 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/30 relative"
+              className="flex md:grid items-center px-5 py-3.5 cursor-pointer transition-colors gap-3"
               style={{
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02) inset',
+                gridTemplateColumns: '2.5rem 5.5rem 1fr 13rem 5rem',
+                borderBottom: '1px solid var(--card-border)',
               }}
-              onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(59,130,246,0.1)')}
-              onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02) inset')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--table-row-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}
             >
-              <button
-                onClick={e => toggleBookmark(e, p.id)}
-                disabled={bookmarkLoading.has(p.id)}
-                className="absolute top-4 right-4 text-slate-500 hover:text-yellow-400 transition-colors z-10 disabled:opacity-50"
-                title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
-              >
-                {bookmarkLoading.has(p.id)
-                  ? <Loader2 size={16} strokeWidth={1.75} className="animate-spin text-slate-400" />
-                  : isBookmarked
-                    ? <BookmarkCheck size={16} strokeWidth={1.75} className="text-yellow-400" />
-                    : <Bookmark size={16} strokeWidth={1.75} />}
-              </button>
+              {/* # */}
+              <span className="hidden md:block text-right text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                {rowNum}
+              </span>
 
-              <div className="flex items-start justify-between mb-3 pr-6">
-                <div className="flex gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize" style={diffStyle(p.difficulty)}>{p.difficulty}</span>
-                  {p.category && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(59,130,246,0.1)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.2)' }}>
-                      {p.category}
-                    </span>
-                  )}
-                </div>
-                {attempted && (
-                  <span className={`text-xs font-bold flex-shrink-0 inline-flex items-center gap-1 ${correct ? 'text-green-400' : 'text-red-400'}`}>
-                    {correct ? <Check size={12} strokeWidth={2.5} /> : <X size={12} strokeWidth={2.5} />}
-                    {correct ? 'Solved' : 'Tried'}
-                  </span>
-                )}
+              {/* Difficulty */}
+              <div className="flex-shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize" style={diffStyle(p.difficulty)}>
+                  {p.difficulty}
+                </span>
               </div>
-              {p.title && <p className="font-extrabold text-white text-base mb-2">{p.title}</p>}
-              <p className="text-slate-400 text-sm leading-relaxed line-clamp-3">{p.question}</p>
-              {p.topic && <p className="text-xs text-slate-500 mt-3 font-semibold">{p.topic}</p>}
+
+              {/* Question preview */}
+              <p className="flex-1 min-w-0 text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                {p.title || p.question || '—'}
+              </p>
+
+              {/* Domain · Topic */}
+              <p className="hidden md:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                {[p.category, p.topic].filter(Boolean).join(' · ') || '—'}
+              </p>
+
+              {/* Status + bookmark */}
+              <div className="flex items-center justify-end gap-2 flex-shrink-0">
+                {attempted && (
+                  correct
+                    ? <Check size={13} strokeWidth={2.5} className="text-emerald-500 flex-shrink-0" />
+                    : <X size={13} strokeWidth={2.5} className="text-red-400 flex-shrink-0" />
+                )}
+                <button
+                  onClick={e => toggleBookmark(e, p.id)}
+                  disabled={bookmarkLoading.has(p.id)}
+                  className="p-1 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+                  style={{ color: isBookmarked ? '#EAB308' : 'var(--text-muted)' }}
+                  title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                >
+                  {bookmarkLoading.has(p.id)
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : isBookmarked
+                      ? <BookmarkCheck size={14} />
+                      : <Bookmark size={14} />}
+                </button>
+              </div>
             </div>
           )
         })}
+
         {paginated.length === 0 && (
-          <div className="col-span-full text-center py-20 text-slate-500 text-base">No problems found</div>
+          <div className="py-20 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+            No problems found
+          </div>
         )}
       </div>
 
       {/* Bottom pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
+        <div className="flex items-center justify-center gap-2 mt-6">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={safePage === 1}
-            className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
           >
             <ChevronLeft size={14} strokeWidth={2} /> Prev
           </button>
-          <span className="text-sm text-slate-500">Page {safePage} / {totalPages}</span>
+          <span className="text-sm px-2" style={{ color: 'var(--text-muted)' }}>Page {safePage} / {totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={safePage === totalPages}
-            className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
           >
             Next <ChevronRight size={14} strokeWidth={2} />
           </button>
