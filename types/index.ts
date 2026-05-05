@@ -22,6 +22,7 @@ export interface Problem {
   category: ProblemCategory | null
   solution: string
   explanation: string | null
+  explanation_mn: string | null
   order_index: number | null
   image_url: string | null
   choices_image_url: string | null

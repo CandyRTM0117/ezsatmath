@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Menu, X, Check, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Problem, Choice } from '@/types'
+import { useLang } from '@/components/ui/LanguageProvider'
 
 const diffStyle = (d: string) => ({
   easy:   { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)' },
@@ -176,6 +177,7 @@ function ImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
 // ---------------------------------------------------------------------------
 export default function ProblemDetailClient({ problem }: { problem: Problem & { choices: Choice[] } }) {
   const router = useRouter()
+  const { lang } = useLang()
 
   const [selectedMC, setSelectedMC] = useState<string | null>(null)
   const [inputVal, setInputVal]     = useState('')
@@ -347,16 +349,19 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
                     </p>
                   )}
 
-                  {problem.explanation && (
-                    <div
-                      className="rounded-xl p-4"
-                      style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
-                    >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                        {problem.explanation}
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const text = lang === 'mn' && problem.explanation_mn ? problem.explanation_mn : problem.explanation
+                    return text ? (
+                      <div
+                        className="rounded-xl p-4"
+                        style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
+                      >
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                          {text}
+                        </p>
+                      </div>
+                    ) : null
+                  })()}
                 </div>
               )}
             </div>

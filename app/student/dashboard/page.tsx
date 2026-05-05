@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Zap, FileText, Target, ClipboardList, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'
 import ChangePasswordForm from './ChangePasswordForm'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import LanguageToggle from '@/components/ui/LanguageToggle'
 
 const STAT_CONFIG = [
   { key: 'solvedToday',     label: 'Solved Today',     Icon: Zap,           from: '#60A5FA', to: '#3B82F6' },
@@ -184,6 +185,7 @@ export default async function DashboardPage() {
                 </div>
               ))}
               <ThemeToggle />
+              <LanguageToggle />
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest w-16 shrink-0">Plan</span>
                 {profile?.is_subscribed ? (

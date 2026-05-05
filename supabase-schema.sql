@@ -22,6 +22,7 @@ create table if not exists problems (
   topic       text,
   solution    text not null,
   explanation text,
+  explanation_mn text,
   order_index int,
   created_at  timestamptz not null default now()
 );
