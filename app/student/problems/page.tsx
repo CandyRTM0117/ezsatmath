@@ -12,10 +12,12 @@ export default async function ProblemsPage() {
     { data: problems },
     { data: attempts },
     { data: bookmarkRows },
+    { data: profile },
   ] = await Promise.all([
     supabase.from('problems').select('*, choices(*)').order('order_index', { ascending: true }),
     supabase.from('problem_attempts').select('problem_id, is_correct').eq('user_id', user.id),
     supabase.from('bookmarks').select('problem_id').eq('user_id', user.id),
+    supabase.from('users').select('*').eq('id', user.id).single(),
   ])
 
   const attemptMap = new Map<string, boolean>()
@@ -33,6 +35,7 @@ export default async function ProblemsPage() {
       attemptMap={Object.fromEntries(attemptMap)}
       userId={user.id}
       initialBookmarks={initialBookmarks}
+      userData={{ ...user, ...profile }}
     />
   )
 }

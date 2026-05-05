@@ -175,9 +175,12 @@ function ImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export default function ProblemDetailClient({ problem }: { problem: Problem & { choices: Choice[] } }) {
+export default function ProblemDetailClient({ problem, preferredLanguage }: { problem: Problem & { choices: Choice[] }, preferredLanguage?: 'en' | 'mn' }) {
   const router = useRouter()
-  const { lang } = useLang()
+  const { lang: contextLang } = useLang()
+  const lang = preferredLanguage ?? contextLang
+
+  console.log('[ProblemDetail] full problem data:', problem)
 
   const [selectedMC, setSelectedMC] = useState<string | null>(null)
   const [inputVal, setInputVal]     = useState('')
@@ -350,7 +353,10 @@ export default function ProblemDetailClient({ problem }: { problem: Problem & { 
                   )}
 
                   {(() => {
-                    const text = lang === 'mn' && problem.explanation_mn ? problem.explanation_mn : problem.explanation
+const text =
+lang === 'mn'
+  ? problem.explanation_mn || problem.explanation
+  : problem.explanation
                     return text ? (
                       <div
                         className="rounded-xl p-4"

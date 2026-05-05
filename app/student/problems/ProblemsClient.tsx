@@ -39,12 +39,17 @@ export default function ProblemsClient({
   attemptMap: initialAttemptMap,
   userId,
   initialBookmarks,
+  userData,
 }: {
   problems: ProblemWithChoices[]
   attemptMap: Record<string, boolean>
   userId: string
   initialBookmarks: Set<string>
+  userData?: Record<string, unknown>
 }) {
+  console.log('[User data]', userData)
+  const preferredLanguage = (userData?.preferred_language as 'en' | 'mn') ?? 'en'
+  console.log('[Preferred language]', preferredLanguage)
   const [attemptMap, setAttemptMap] = useState(initialAttemptMap)
   const [bookmarks, setBookmarks] = useState<Set<string>>(initialBookmarks)
   const [bookmarkLoading, setBookmarkLoading] = useState<Set<string>>(new Set())
@@ -63,6 +68,7 @@ export default function ProblemsClient({
   const supabase = useRef(createClient()).current
 
   function openProblem(p: ProblemWithChoices) {
+    console.log('[Problem clicked]', p, '| preferred language:', preferredLanguage)
     setSelected(p)
     setAnswer('')
     setResult(null)
@@ -92,7 +98,10 @@ export default function ProblemsClient({
         is_correct: isCorrect,
       })
       setAttemptMap(m => ({ ...m, [selected.id]: isCorrect }))
-      setResult({ correct: isCorrect, explanation: selected.explanation ?? null })
+      const explanation = preferredLanguage === 'mn'
+        ? (selected.explanation_mn || selected.explanation)
+        : selected.explanation
+      setResult({ correct: isCorrect, explanation: explanation ?? null })
     } finally {
       setSubmitting(false)
     }

@@ -9,7 +9,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const { data: profile } = await supabase
     .from('users')
-    .select('name, role')
+    .select('name, role, preferred_language')
     .eq('id', user.id)
     .single()
 
@@ -17,7 +17,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (profile?.role === 'teacher') redirect('/teacher/problems')
 
   return (
-    <AppShell role="student" userName={profile?.name ?? user.email ?? ''} userId={user.id}>
+    <AppShell role="student" userName={profile?.name ?? user.email ?? ''} userId={user.id} preferredLanguage={(profile?.preferred_language as 'en' | 'mn') ?? 'en'}>
       {children}
     </AppShell>
   )

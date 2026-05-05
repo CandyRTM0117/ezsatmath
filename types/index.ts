@@ -6,6 +6,7 @@ export interface User {
   name: string | null
   role: Role
   is_subscribed: boolean
+  preferred_language: 'en' | 'mn'
   created_at: string
 }
 

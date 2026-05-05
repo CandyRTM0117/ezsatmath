@@ -8,11 +8,12 @@ export default async function ProblemDetailPage({ params }: { params: Promise<{ 
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: problem } = await supabase
-    .from('problems')
-    .select('*, choices(*)')
-    .eq('id', id)
-    .single()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [{ data: problem }, { data: profile }] = await Promise.all([
+    supabase.from('problems').select('*, choices(*)').eq('id', id).single(),
+    user ? supabase.from('users').select('preferred_language').eq('id', user.id).single() : Promise.resolve({ data: null }),
+  ])
 
   if (!problem) notFound()
 
@@ -20,5 +21,7 @@ export default async function ProblemDetailPage({ params }: { params: Promise<{ 
     (a: { order_index: number }, b: { order_index: number }) => a.order_index - b.order_index
   )
 
-  return <ProblemDetailClient problem={{ ...problem, choices }} />
+  const preferredLanguage = (profile?.preferred_language as 'en' | 'mn') ?? 'en'
+
+  return <ProblemDetailClient problem={{ ...problem, choices }} preferredLanguage={preferredLanguage} />
 }

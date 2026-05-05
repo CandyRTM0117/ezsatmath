@@ -67,14 +67,15 @@ export default function ChangePasswordForm({ email }: { email: string }) {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {[
-          { label: 'Current password', value: currentPw, set: setCurrentPw, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
-          { label: 'New password', value: newPw, set: setNewPw, show: showNew, toggle: () => setShowNew(v => !v) },
-          { label: 'Confirm new password', value: confirmPw, set: setConfirmPw, show: showNew, toggle: null },
-        ].map(({ label, value, set, show, toggle }) => (
+          { label: 'Current password', autoComplete: 'current-password', value: currentPw, set: setCurrentPw, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
+          { label: 'New password', autoComplete: 'new-password', value: newPw, set: setNewPw, show: showNew, toggle: () => setShowNew(v => !v) },
+          { label: 'Confirm new password', autoComplete: 'new-password', value: confirmPw, set: setConfirmPw, show: showNew, toggle: null },
+        ].map(({ label, autoComplete, value, set, show, toggle }) => (
           <div key={label} className="relative">
             <input
               type={show ? 'text' : 'password'}
               required
+              autoComplete={autoComplete}
               placeholder={label}
               value={value}
               onChange={e => set(e.target.value)}

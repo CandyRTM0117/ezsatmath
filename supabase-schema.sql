@@ -148,6 +148,9 @@ alter table public.users add column if not exists is_subscribed boolean not null
 -- Add category to problems (Algebra, Trigonometry, Data Analytics, Advanced Math)
 alter table public.problems add column if not exists category text;
 
+-- Add preferred language to users
+alter table public.users add column if not exists preferred_language text not null default 'en';
+
 -- ============================================================
 -- AUTO-INSERT USER PROFILE ON SIGNUP
 -- ============================================================

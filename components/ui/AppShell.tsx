@@ -4,20 +4,24 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import { useTheme } from './ThemeProvider'
+import { useLang } from './LanguageProvider'
 
 interface AppShellProps {
   role: 'admin' | 'student' | 'teacher'
   userName: string
   userId: string
+  preferredLanguage?: 'en' | 'mn'
   children: React.ReactNode
 }
 
-export default function AppShell({ role, userName, userId, children }: AppShellProps) {
+export default function AppShell({ role, userName, userId, preferredLanguage = 'en', children }: AppShellProps) {
   const pathname = usePathname()
   const { registerUser } = useTheme()
+  const { registerUser: registerLang } = useLang()
 
   useEffect(() => {
     registerUser(userId)
+    registerLang(userId, preferredLanguage)
   }, [userId])
 
   const isFullscreen = /\/problems\/[^/]+$/.test(pathname)
