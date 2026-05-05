@@ -20,6 +20,7 @@ const EMPTY_FORM = {
   topic: '',
   solution: '',
   explanation: '',
+  explanation_mn: '',
   choices: [
     { label: 'A', choice_text: '', is_correct: false },
     { label: 'B', choice_text: '', is_correct: false },
@@ -82,6 +83,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
       topic: p.topic ?? '',
       solution: p.solution,
       explanation: p.explanation ?? '',
+      explanation_mn: p.explanation_mn ?? '',
       choices: sortedChoices,
     })
     setError('')
@@ -106,7 +108,7 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     }
 
     if (editProblem) {
-      const { error: err } = await supabase
+      const { data: updated, error: err } = await supabase
         .from('problems')
         .update({
           title: form.title || null,
@@ -117,10 +119,13 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
           topic: form.topic || null,
           solution: form.solution,
           explanation: form.explanation || null,
+          explanation_mn: form.explanation_mn || null,
         })
         .eq('id', editProblem.id)
+        .select()
 
       if (err) { setError(err.message); setLoading(false); return }
+      if (!updated || updated.length === 0) { setError('Update failed: no rows changed. Check RLS policies.'); setLoading(false); return }
 
       if (form.type === 'mc') {
         await supabase.from('choices').delete().eq('problem_id', editProblem.id)
@@ -328,16 +333,18 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                 onFocus={inputFocus}
                 onBlur={inputBlur}
               />
-              <textarea
-                rows={2}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none focus:outline-none transition-all"
-                style={inputStyle}
-                placeholder="Explanation (shown after wrong answer)"
-                value={form.explanation}
-                onChange={e => setForm(f => ({ ...f, explanation: e.target.value }))}
-                onFocus={inputFocus}
-                onBlur={inputBlur}
-              />
+              {editProblem && (
+                <textarea
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none focus:outline-none transition-all"
+                  style={inputStyle}
+                  placeholder="Тайлбар (Монгол)"
+                  value={form.explanation_mn}
+                  onChange={e => setForm(f => ({ ...f, explanation_mn: e.target.value }))}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
+                />
+              )}
 
               {error && <p className="text-sm font-semibold text-red-400">{error}</p>}
               <div className="flex gap-2 pt-2">
