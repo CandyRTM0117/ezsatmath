@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { Lock, X, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Lock, X, Check, ChevronDown, ChevronUp, Plus, Trash2, Pencil, Calendar, TrendingUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import type { DomainStat, TodoTask } from './page'
 
 interface ExamRecord {
   id: string
@@ -34,6 +35,24 @@ interface Props {
   totalExamAnswers: number
   correctExamAnswers: number
   isSubscribed: boolean
+  subscriptionValidUntil: string | null
+  domainStats: DomainStat[] | null
+  initialTodos: TodoTask[]
+  userId: string
+}
+
+const DOMAIN_DISPLAY: Record<string, string> = {
+  'Algebra': 'Algebra',
+  'Advanced Math': 'Advanced Math',
+  'Data Analytics': 'Problem Solving & Data Analysis',
+  'Trigonometry': 'Geometry & Trigonometry',
+}
+
+function proficiencyLabel(pct: number) {
+  if (pct >= 80) return { label: 'Strong', color: '#34D399' }
+  if (pct >= 60) return { label: 'Proficient', color: '#60A5FA' }
+  if (pct >= 40) return { label: 'Improving', color: '#FBBF24' }
+  return { label: 'Weak', color: '#F87171' }
 }
 
 function groupIntoSessions(exams: ExamRecord[]): ExamSession[] {
@@ -63,11 +82,18 @@ function groupIntoSessions(exams: ExamRecord[]): ExamSession[] {
 }
 
 export default function AnalyticsClient({
-  attempts, exams, totalAttempts, correctAttempts, totalExamAnswers, correctExamAnswers, isSubscribed,
+  attempts, exams, totalAttempts, correctAttempts, totalExamAnswers, correctExamAnswers,
+  isSubscribed, subscriptionValidUntil, domainStats, initialTodos, userId,
 }: Props) {
   const [expandedSession, setExpandedSession] = useState<number | null>(null)
   const [sessionAnswers, setSessionAnswers] = useState<Record<string, ExamAnswer[]>>({})
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [todos, setTodos] = useState<TodoTask[]>(initialTodos)
+  const [newTask, setNewTask] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [todoLoading, setTodoLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
   const sessions = groupIntoSessions(exams)
@@ -121,6 +147,42 @@ export default function AnalyticsClient({
     if (session.part2) await loadAnswers(session.part2.id)
   }
 
+  async function addTodo() {
+    const text = newTask.trim()
+    if (!text || todoLoading) return
+    setTodoLoading(true)
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7)
+    const { data, error } = await supabase.from('todo_tasks').insert({
+      user_id: userId,
+      task_text: text,
+      expires_at: expiresAt.toISOString(),
+    }).select('id, task_text, completed, expires_at').single()
+    if (!error && data) {
+      setTodos(prev => [...prev, data as TodoTask])
+      setNewTask('')
+    }
+    setTodoLoading(false)
+  }
+
+  async function toggleTodo(id: string, completed: boolean) {
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, completed } : t))
+    await supabase.from('todo_tasks').update({ completed }).eq('id', id)
+  }
+
+  async function deleteTodo(id: string) {
+    setTodos(prev => prev.filter(t => t.id !== id))
+    await supabase.from('todo_tasks').delete().eq('id', id)
+  }
+
+  async function saveEdit(id: string) {
+    const text = editText.trim()
+    if (!text) return
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, task_text: text } : t))
+    setEditingId(null)
+    await supabase.from('todo_tasks').update({ task_text: text }).eq('id', id)
+  }
+
   function AnswerList({ examId }: { examId: string }) {
     const answers = sessionAnswers[examId] ?? []
     if (loadingId === examId) return <div className="text-slate-400 text-xs py-3">Loading…</div>
@@ -156,8 +218,180 @@ export default function AnalyticsClient({
     )
   }
 
+  // Domain performance section
+  function DomainPerformance() {
+    if (!domainStats || domainStats.length === 0) return null
+
+    const strongest = domainStats.reduce((a, b) => (b.total > 0 && b.correct / b.total > a.correct / a.total) ? b : a, domainStats[0])
+    const weakest = domainStats.reduce((a, b) => (b.total > 0 && b.correct / b.total < a.correct / a.total) ? b : a, domainStats[0])
+
+    return (
+      <div className="c-card rounded-2xl p-7 mb-8">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={18} strokeWidth={1.75} className="text-blue-400" />
+            <h2 className="font-extrabold text-white text-lg tracking-tight">Domain Performance</h2>
+          </div>
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Best exam</span>
+        </div>
+
+        {/* AI-like summary */}
+        <p className="text-sm text-slate-400 mb-6">
+          Your strongest domain is <span className="font-semibold text-emerald-400">{DOMAIN_DISPLAY[strongest.name] ?? strongest.name}</span>.
+          {strongest.name !== weakest.name && (
+            <> <span className="font-semibold" style={{ color: proficiencyLabel(Math.round(weakest.correct / weakest.total * 100)).color }}>{DOMAIN_DISPLAY[weakest.name] ?? weakest.name}</span> needs the most improvement.</>
+          )}
+        </p>
+
+        <div className="space-y-5">
+          {domainStats.map(d => {
+            const pct = d.total > 0 ? Math.round(d.correct / d.total * 100) : 0
+            const { label, color } = proficiencyLabel(pct)
+            const displayName = DOMAIN_DISPLAY[d.name] ?? d.name
+            return (
+              <div key={d.name}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-semibold text-slate-200">{displayName}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400 tabular-nums">{d.correct}/{d.total}</span>
+                    <span className="text-xs font-extrabold tabular-nums" style={{ color }}>{pct}%</span>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: `${color}18`, color, border: `1px solid ${color}33` }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: 'var(--input-bg)' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}99, ${color})`, boxShadow: `0 0 8px ${color}44` }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // Weekly todo widget
+  function TodoWidget() {
+    const completed = todos.filter(t => t.completed).length
+    return (
+      <div className="c-card rounded-2xl p-7 mb-8">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="font-extrabold text-white text-lg tracking-tight">Weekly Study Planner</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Tasks reset every 7 days · {completed}/{todos.length} complete</p>
+          </div>
+          <Calendar size={18} strokeWidth={1.75} className="text-blue-400 shrink-0" />
+        </div>
+
+        {/* Add task input */}
+        <div className="flex gap-2 mb-5">
+          <input
+            ref={inputRef}
+            type="text"
+            value={newTask}
+            onChange={e => setNewTask(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addTodo() }}
+            placeholder="Add a study task…"
+            className="flex-1 px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
+            onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
+          />
+          <button
+            onClick={addTodo}
+            disabled={!newTask.trim() || todoLoading}
+            className="px-4 py-2.5 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02]"
+            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 14px rgba(59,130,246,0.35)' }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Task list */}
+        {todos.length === 0 ? (
+          <p className="text-sm text-slate-500 text-center py-6">No tasks yet. Add one above!</p>
+        ) : (
+          <div className="space-y-2">
+            {todos.map(t => (
+              <div
+                key={t.id}
+                className="flex items-center gap-3 p-3 rounded-xl transition-all"
+                style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
+              >
+                <button
+                  onClick={() => toggleTodo(t.id, !t.completed)}
+                  className="shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                  style={t.completed
+                    ? { background: 'rgba(16,185,129,0.2)', borderColor: '#34D399', color: '#34D399' }
+                    : { borderColor: 'rgba(255,255,255,0.2)', color: 'transparent' }}
+                >
+                  {t.completed && <Check size={11} strokeWidth={3} />}
+                </button>
+
+                {editingId === t.id ? (
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveEdit(t.id)
+                      if (e.key === 'Escape') setEditingId(null)
+                    }}
+                    autoFocus
+                    className="flex-1 bg-transparent text-sm focus:outline-none text-white"
+                    onBlur={() => saveEdit(t.id)}
+                  />
+                ) : (
+                  <span
+                    className="flex-1 text-sm transition-all"
+                    style={{ color: t.completed ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: t.completed ? 'line-through' : 'none' }}
+                  >
+                    {t.task_text}
+                  </span>
+                )}
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => { setEditingId(t.id); setEditText(t.task_text) }}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-white/5 text-slate-500 hover:text-slate-300"
+                  >
+                    <Pencil size={13} strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => deleteTodo(t.id)}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 text-slate-500 hover:text-red-400"
+                  >
+                    <Trash2 size={13} strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const premiumContent = (
     <>
+      {/* Subscription valid until badge */}
+      {subscriptionValidUntil && (
+        <div
+          className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full text-sm font-semibold"
+          style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', color: '#34D399' }}
+        >
+          <Calendar size={14} strokeWidth={2} />
+          Pro Active Until: {new Date(subscriptionValidUntil).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {STATS.map(s => (
           <div
@@ -179,6 +413,8 @@ export default function AnalyticsClient({
           </div>
         ))}
       </div>
+
+      <DomainPerformance />
 
       <div className="c-card rounded-2xl p-7 mb-8">
         <div className="flex items-center justify-between mb-7">
@@ -225,7 +461,35 @@ export default function AnalyticsClient({
           ))}
         </div>
       </div>
+
+      <TodoWidget />
     </>
+  )
+
+  const lockedTodo = (
+    <div
+      className="c-card rounded-2xl p-7 mb-8"
+      style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-extrabold text-white text-lg tracking-tight">Weekly Study Planner</h2>
+        <Lock size={16} strokeWidth={1.75} className="text-slate-500" />
+      </div>
+      <div
+        className="rounded-xl p-5 text-center"
+        style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)' }}
+      >
+        <Lock size={20} strokeWidth={1.5} className="text-slate-600 mx-auto mb-2" />
+        <p className="text-sm text-slate-500">Upgrade to Pro to use the Weekly Study Planner</p>
+        <Link
+          href="/student/subscription"
+          className="inline-flex items-center gap-1.5 mt-3 px-4 py-1.5 text-xs font-bold text-white rounded-full transition-all hover:scale-[1.02]"
+          style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}
+        >
+          Upgrade to Pro
+        </Link>
+      </div>
+    </div>
   )
 
   return (
@@ -240,42 +504,55 @@ export default function AnalyticsClient({
       {isSubscribed ? (
         premiumContent
       ) : (
-        <div className="relative mb-8">
-          <div className="pointer-events-none select-none" style={{ filter: 'blur(6px)', opacity: 0.4 }}>
-            {premiumContent}
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div
-              className="rounded-2xl p-8 text-center max-w-sm w-full mx-4"
-              style={{
-                background: 'rgba(11,18,36,0.95)',
-                border: '1px solid rgba(59,130,246,0.3)',
-                boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
-              }}
-            >
-              <div
-                className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}
-              >
-                <Lock size={24} strokeWidth={1.5} className="text-blue-300" />
+        <>
+          <div className="relative mb-8">
+            <div className="pointer-events-none select-none" style={{ filter: 'blur(6px)', opacity: 0.4 }}>
+              {/* Blurred preview (no todo widget for free) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                {STATS.map(s => (
+                  <div key={s.label} className="c-card rounded-2xl p-5">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
+                    <p className="text-3xl font-extrabold tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                      {s.value}
+                    </p>
+                  </div>
+                ))}
               </div>
-              <h2 className="text-xl font-extrabold text-white mb-2 tracking-tight">Unlock with Pro</h2>
-              <p className="text-slate-400 text-sm mb-5 leading-relaxed">
-                Get detailed performance insights, charts, and full analytics with a Pro subscription.
-              </p>
-              <Link
-                href="/student/subscription"
-                className="inline-flex items-center justify-center w-full py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.02]"
-                style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 24px rgba(59,130,246,0.4)' }}
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <div
+                className="rounded-2xl p-8 text-center max-w-sm w-full mx-4"
+                style={{
+                  background: 'rgba(11,18,36,0.95)',
+                  border: '1px solid rgba(59,130,246,0.3)',
+                  boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+                }}
               >
-                Unlock with Pro
-              </Link>
+                <div
+                  className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}
+                >
+                  <Lock size={24} strokeWidth={1.5} className="text-blue-300" />
+                </div>
+                <h2 className="text-xl font-extrabold text-white mb-2 tracking-tight">Unlock with Pro</h2>
+                <p className="text-slate-400 text-sm mb-5 leading-relaxed">
+                  Get detailed performance insights, domain charts, and the weekly study planner.
+                </p>
+                <Link
+                  href="/student/subscription"
+                  className="inline-flex items-center justify-center w-full py-3 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.02]"
+                  style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 24px rgba(59,130,246,0.4)' }}
+                >
+                  Unlock with Pro
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+          {lockedTodo}
+        </>
       )}
 
-      {/* Exam History */}
+      {/* Exam History — visible to all */}
       <div className="c-card rounded-2xl overflow-hidden">
         <div className="px-7 py-5 border-b border-white/8">
           <h2 className="font-extrabold text-white text-lg tracking-tight">Exam History</h2>
@@ -295,16 +572,13 @@ export default function AnalyticsClient({
 
               return (
                 <div key={idx}>
-                  {/* Session header row */}
                   <button
                     className="w-full px-7 py-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors text-left"
                     onClick={() => toggleSession(idx, session)}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="font-semibold text-slate-300">
-                          Full Test · {dateStr}
-                        </span>
+                        <span className="font-semibold text-slate-300">Full Test · {dateStr}</span>
                         <span className="font-extrabold tabular-nums" style={{ color }}>
                           {totalScore}/{totalTotal} ({pct}%)
                         </span>
@@ -319,7 +593,6 @@ export default function AnalyticsClient({
                     }
                   </button>
 
-                  {/* Expanded: Part 1 + Part 2 breakdown */}
                   {isOpen && (
                     <div className="c-card-inner px-7 pb-5 space-y-4">
                       {[session.part1, session.part2].map((part, pi) => {

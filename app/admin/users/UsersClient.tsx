@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Loader2 } from 'lucide-react'
+import { Plus, X, Loader2, Crown, ShieldOff, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
 import type { User } from '@/types'
@@ -19,6 +19,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' as 'admin' | 'student' | 'teacher' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [subLoading, setSubLoading] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -65,6 +66,17 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
     if (res.ok) await reload()
   }
 
+  async function handleSubscription(userId: string, action: 'upgrade' | 'downgrade' | 'extend') {
+    setSubLoading(userId + action)
+    const res = await fetch('/api/admin/subscription', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, action }),
+    })
+    if (res.ok) await reload()
+    setSubLoading(null)
+  }
+
   function openEdit(user: User) {
     setEditUser(user)
     setForm({ name: user.name ?? '', email: user.email, password: '', role: user.role })
@@ -72,6 +84,16 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
   }
 
   const closeModal = () => { setShowAdd(false); setEditUser(null) }
+
+  function fmtDate(d: string | null) {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  function isExpired(d: string | null) {
+    if (!d) return false
+    return new Date(d) < new Date()
+  }
 
   return (
     <div>
@@ -178,43 +200,111 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
       )}
 
       <div className="c-card rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--table-header-border)' }}>
-            <tr>
-              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Name</th>
-              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Email</th>
-              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Role</th>
-              <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Joined</th>
-              <th className="px-5 py-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.02]">
-                <td className="px-5 py-4 font-semibold text-white">{u.name ?? '—'}</td>
-                <td className="px-5 py-4 text-slate-400">{u.email}</td>
-                <td className="px-5 py-4">
-                  <span
-                    className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest"
-                    style={u.role === 'admin'
-                      ? { background: 'rgba(168,85,247,0.12)', color: '#C4B5FD', border: '1px solid rgba(168,85,247,0.25)' }
-                      : { background: 'rgba(59,130,246,0.12)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.25)' }}
-                  >
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-slate-500">{new Date(u.created_at).toLocaleDateString()}</td>
-                <td className="px-5 py-4 flex gap-3 justify-end">
-                  <button onClick={() => openEdit(u)} className="text-blue-400 hover:text-blue-300 text-xs font-semibold transition-colors">Edit</button>
-                  <button onClick={() => handleDelete(u)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Delete</button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
+            <thead style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--table-header-border)' }}>
+              <tr>
+                <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Name</th>
+                <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Email</th>
+                <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Role</th>
+                <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Plan</th>
+                <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Valid Until</th>
+                <th className="text-left px-5 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">Joined</th>
+                <th className="px-5 py-4"></th>
               </tr>
-            ))}
-            {users.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-500">No users yet</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map(u => {
+                const expired = u.is_subscribed && isExpired(u.subscription_valid_until)
+                return (
+                  <tr key={u.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.02]">
+                    <td className="px-5 py-4 font-semibold text-white">{u.name ?? '—'}</td>
+                    <td className="px-5 py-4 text-slate-400 text-xs">{u.email}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest"
+                        style={u.role === 'admin'
+                          ? { background: 'rgba(168,85,247,0.12)', color: '#C4B5FD', border: '1px solid rgba(168,85,247,0.25)' }
+                          : { background: 'rgba(59,130,246,0.12)', color: '#93C5FD', border: '1px solid rgba(59,130,246,0.25)' }}
+                      >
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {u.is_subscribed ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                          style={expired
+                            ? { background: 'rgba(239,68,68,0.12)', color: '#F87171', border: '1px solid rgba(239,68,68,0.25)' }
+                            : { background: 'rgba(52,211,153,0.12)', color: '#34D399', border: '1px solid rgba(52,211,153,0.25)' }}
+                        >
+                          <Crown size={11} strokeWidth={2} />
+                          {expired ? 'Pro (expired)' : 'Pro'}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-400" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          Free
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-xs text-slate-400">
+                      {u.subscription_valid_until ? (
+                        <span style={{ color: expired ? '#F87171' : '#94A3B8' }}>
+                          {fmtDate(u.subscription_valid_until)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-5 py-4 text-slate-500 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2 justify-end flex-wrap">
+                        {u.is_subscribed ? (
+                          <>
+                            <button
+                              onClick={() => handleSubscription(u.id, 'extend')}
+                              disabled={subLoading === u.id + 'extend'}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-lg disabled:opacity-50"
+                              style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
+                              title="Extend by 30 days"
+                            >
+                              {subLoading === u.id + 'extend' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} strokeWidth={2} />}
+                              +30d
+                            </button>
+                            <button
+                              onClick={() => handleSubscription(u.id, 'downgrade')}
+                              disabled={subLoading === u.id + 'downgrade'}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded-lg disabled:opacity-50"
+                              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+                              title="Downgrade to Free"
+                            >
+                              {subLoading === u.id + 'downgrade' ? <Loader2 size={11} className="animate-spin" /> : <ShieldOff size={11} strokeWidth={2} />}
+                              Free
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleSubscription(u.id, 'upgrade')}
+                            disabled={subLoading === u.id + 'upgrade'}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors px-2 py-1 rounded-lg disabled:opacity-50"
+                            style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}
+                            title="Upgrade to Pro (30 days)"
+                          >
+                            {subLoading === u.id + 'upgrade' ? <Loader2 size={11} className="animate-spin" /> : <Crown size={11} strokeWidth={2} />}
+                            Pro
+                          </button>
+                        )}
+                        <button onClick={() => openEdit(u)} className="text-blue-400 hover:text-blue-300 text-xs font-semibold transition-colors">Edit</button>
+                        <button onClick={() => handleDelete(u)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {users.length === 0 && (
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No users yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

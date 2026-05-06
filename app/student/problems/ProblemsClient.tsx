@@ -127,9 +127,14 @@ export default function ProblemsClient({
     }
   }
 
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim()
+
   const displayed = problems.filter(p => {
     if (filterDiff !== 'all' && p.difficulty !== filterDiff) return false
-    if (filterCategory !== 'all' && p.category !== filterCategory) return false
+    if (filterCategory !== 'all') {
+      if (!p.category) return false
+      if (norm(p.category) !== norm(filterCategory)) return false
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       if (!p.question.toLowerCase().includes(q) && !(p.title ?? '').toLowerCase().includes(q)) return false

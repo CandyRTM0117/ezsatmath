@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2, Lock } from 'lucide-react'
+import { FileText, Timer, ArrowLeft, ArrowRight, Check, X, Loader2, Lock, Award } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Problem, Choice } from '@/types'
@@ -580,6 +580,21 @@ export default function ExamClient({
     const isLimited = !isSubscribed && examCount >= FREE_EXAM_LIMIT
     const examPairs = examHistory.filter(e => e.part === 1)
 
+    // Compute highest SAT score from all completed exam pairs
+    let highestSat: { score: number; date: string } | null = null
+    for (const e1 of examPairs) {
+      const e2 = examHistory.find(e =>
+        e.part === 2 &&
+        new Date(e.taken_at).toDateString() === new Date(e1.taken_at).toDateString()
+      )
+      const totalScore = e1.score + (e2?.score ?? 0)
+      const totalQ = e1.total + (e2?.total ?? 0)
+      const sat = toSatScore(totalScore, totalQ)
+      if (!highestSat || sat > highestSat.score) {
+        highestSat = { score: sat, date: e1.taken_at }
+      }
+    }
+
     return (
       <div>
         <div className="mb-10">
@@ -598,6 +613,32 @@ export default function ExamClient({
                 <span className="inline-flex items-center gap-2"><FileText size={16} strokeWidth={1.75} className="text-blue-400" /> 2 parts · 22 questions each</span>
                 <span className="inline-flex items-center gap-2"><Timer size={16} strokeWidth={1.75} className="text-blue-400" /> 35 min per part</span>
               </div>
+              {highestSat && (
+                <div
+                  className="flex items-center gap-3 mb-5 p-3.5 rounded-xl"
+                  style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}
+                >
+                  <Award size={18} strokeWidth={1.75} style={{ color: '#FBBF24', flexShrink: 0 }} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold text-white">Highest SAT Score: </span>
+                    <span
+                      className="text-sm font-extrabold"
+                      style={{
+                        background: highestSat.score >= 650 ? 'linear-gradient(135deg, #34D399, #10B981)' : highestSat.score >= 450 ? 'linear-gradient(135deg, #FBBF24, #F59E0B)' : 'linear-gradient(135deg, #F87171, #EF4444)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
+                      {highestSat.score}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500 shrink-0">
+                    {new Date(highestSat.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+
               {!isSubscribed && (
                 <p className="text-xs text-slate-500 mb-4">
                   Free plan: {examCount}/{FREE_EXAM_LIMIT} exams used

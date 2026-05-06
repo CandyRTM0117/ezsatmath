@@ -151,6 +151,30 @@ alter table public.problems add column if not exists category text;
 -- Add preferred language to users
 alter table public.users add column if not exists preferred_language text not null default 'en';
 
+-- Add subscription date tracking to users
+alter table public.users add column if not exists subscription_start_date timestamptz;
+alter table public.users add column if not exists subscription_valid_until timestamptz;
+
+-- Todo tasks for Pro users (weekly study planner)
+create table if not exists todo_tasks (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references users(id) on delete cascade,
+  task_text   text not null,
+  completed   boolean not null default false,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null
+);
+
+create index if not exists idx_todo_tasks_user on todo_tasks(user_id);
+
+alter table todo_tasks enable row level security;
+
+create policy "todo_tasks: student own" on todo_tasks
+  for all using (user_id = auth.uid());
+
+create policy "todo_tasks: admin full" on todo_tasks
+  for all using (is_admin());
+
 -- ============================================================
 -- AUTO-INSERT USER PROFILE ON SIGNUP
 -- ============================================================

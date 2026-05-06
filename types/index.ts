@@ -7,6 +7,8 @@ export interface User {
   role: Role
   is_subscribed: boolean
   preferred_language: 'en' | 'mn'
+  subscription_start_date: string | null
+  subscription_valid_until: string | null
   created_at: string
 }
 
