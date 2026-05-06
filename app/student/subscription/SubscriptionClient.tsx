@@ -175,7 +175,7 @@ export default function SubscriptionClient({ isSubscribed, validUntil }: { isSub
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(8px) saturate(120%)' }}
+          style={{ background: 'rgba(0,0,0,0)' }}
           onClick={() => setShowModal(false)}
         >
           <div
@@ -189,11 +189,10 @@ export default function SubscriptionClient({ isSubscribed, validUntil }: { isSub
             >
               <X size={18} />
             </button>
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Verification Required</p>
-              <h2 className="text-xl font-extrabold text-white">
-                {pendingPlan === 'pro' ? 'Upgrade to Pro' : 'Downgrade to Free'}
-              </h2>
+            <div className="flex flex-col gap-2" >
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Verification Required</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              <h2>{pendingPlan === 'pro' ? 'Upgrade to Pro' : 'Downgrade to Free'}</h2></p>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Subscription changes can only be made by an admin. Please contact your administrator to {pendingPlan === 'pro' ? 'upgrade your account to Pro' : 'downgrade your account to Free'}.
               </p>
