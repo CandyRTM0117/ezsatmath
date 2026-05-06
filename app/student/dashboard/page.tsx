@@ -201,11 +201,11 @@ export default async function DashboardPage() {
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full text-blue-300 self-start" style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.35)' }}>
                       <Sparkles size={12} strokeWidth={1.75} /> Pro
                     </span>
-                    {profile.subscription_valid_until && (
-                      <span className="text-[11px] text-slate-500">
-                        Active until {new Date(profile.subscription_valid_until).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    )}
+                    <span className="text-[11px] text-slate-500">
+                      {profile.subscription_valid_until
+                        ? `Active until ${new Date(profile.subscription_valid_until).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                        : 'No expiry date — contact admin'}
+                    </span>
                   </div>
                 ) : (
                   <Link href="/student/subscription" prefetch={true} className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full text-slate-300 border border-white/15 hover:border-blue-400/40 hover:text-blue-300 transition-all">

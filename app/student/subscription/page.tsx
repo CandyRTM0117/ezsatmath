@@ -10,13 +10,14 @@ export default async function SubscriptionPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('is_subscribed')
+    .select('is_subscribed, subscription_valid_until')
     .eq('id', user.id)
     .single()
 
   return (
     <SubscriptionClient
       isSubscribed={profile?.is_subscribed ?? false}
+      validUntil={profile?.subscription_valid_until ?? null}
     />
   )
 }

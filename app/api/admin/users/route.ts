@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   const { error: profileErr } = await admin
     .from('users')
-    .insert({ id: authData.user.id, email, name: name || null, role: role || 'student' })
+    .insert({ id: authData.user.id, email, name: name || null, role: role || 'student', is_subscribed: false })
 
   if (profileErr) {
     await admin.auth.admin.deleteUser(authData.user.id)

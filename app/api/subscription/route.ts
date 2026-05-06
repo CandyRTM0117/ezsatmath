@@ -6,7 +6,6 @@ import { cookies } from 'next/headers'
 export async function PATCH(req: NextRequest) {
   const cookieStore = await cookies()
 
-  // Verify the session via cookies
   const anonClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -25,16 +24,34 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  // Service-role client bypasses RLS — same pattern as /api/setup
+  // Only admins may change subscriptions
+  const { data: caller } = await anonClient.from('users').select('role').eq('id', user.id).single()
+  if (caller?.role !== 'admin') {
+    return NextResponse.json({ error: 'Only admins can change subscriptions.' }, { status: 403 })
+  }
+
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
+  const now = new Date()
+  const updates: Record<string, unknown> = { is_subscribed: body.is_subscribed }
+
+  if (body.is_subscribed) {
+    const validUntil = new Date(now)
+    validUntil.setDate(validUntil.getDate() + 30)
+    updates.subscription_start_date = now.toISOString()
+    updates.subscription_valid_until = validUntil.toISOString()
+  } else {
+    updates.subscription_start_date = null
+    updates.subscription_valid_until = null
+  }
+
   const { error } = await admin
     .from('users')
-    .update({ is_subscribed: body.is_subscribed })
+    .update(updates)
     .eq('id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

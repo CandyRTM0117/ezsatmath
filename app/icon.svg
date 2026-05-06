@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Dark rounded background -->
+  <rect width="32" height="32" rx="7" fill="#0F172A"/>
+  <!-- Left page (slightly off-white) -->
+  <path d="M5 8a2 2 0 0 1 2-2h7v18H7a2 2 0 0 1-2-2V8z" fill="#CBD5E1"/>
+  <!-- Right page (bright white) -->
+  <path d="M16 6h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7V6z" fill="#F8FAFC"/>
+  <!-- Spine -->
+  <rect x="14.5" y="5.5" width="3" height="21" rx="1.5" fill="#1E293B"/>
+  <!-- Text lines left page -->
+  <rect x="7.5" y="11" width="5" height="1.2" rx="0.6" fill="#94A3B8"/>
+  <rect x="7.5" y="14" width="5" height="1.2" rx="0.6" fill="#94A3B8"/>
+  <rect x="7.5" y="17" width="3.5" height="1.2" rx="0.6" fill="#94A3B8"/>
+  <!-- Text lines right page -->
+  <rect x="19.5" y="11" width="5" height="1.2" rx="0.6" fill="#94A3B8"/>
+  <rect x="19.5" y="14" width="5" height="1.2" rx="0.6" fill="#94A3B8"/>
+  <rect x="19.5" y="17" width="3.5" height="1.2" rx="0.6" fill="#94A3B8"/>
+</svg>

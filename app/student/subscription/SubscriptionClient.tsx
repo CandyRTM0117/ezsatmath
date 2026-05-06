@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Check, Sparkles, Loader2, ArrowRight } from 'lucide-react'
+import { Check, Sparkles, ArrowRight, X } from 'lucide-react'
 
 const PRO_FEATURES = [
   'Unlock Analytics Dashboard',
@@ -19,29 +18,20 @@ const FREE_FEATURES = [
   'Limited History',
 ]
 
-export default function SubscriptionClient({ isSubscribed: initial }: { isSubscribed: boolean }) {
-  const [isSubscribed, setIsSubscribed] = useState(initial)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+function remainingDays(validUntil: string | null): number {
+  if (!validUntil) return 0
+  const diff = new Date(validUntil).getTime() - Date.now()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
 
-  async function toggle(subscribe: boolean) {
-    setLoading(true)
-    setError(null)
-    const res = await fetch('/api/subscription', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_subscribed: subscribe }),
-    })
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? 'Failed to update subscription.')
-      setLoading(false)
-      return
-    }
-    setIsSubscribed(subscribe)
-    setLoading(false)
-    router.refresh()
+export default function SubscriptionClient({ isSubscribed, validUntil }: { isSubscribed: boolean; validUntil: string | null }) {
+  const [showModal, setShowModal] = useState(false)
+  const [pendingPlan, setPendingPlan] = useState<'pro' | 'free' | null>(null)
+  const days = remainingDays(validUntil)
+
+  function requestChange(plan: 'pro' | 'free') {
+    setPendingPlan(plan)
+    setShowModal(true)
   }
 
   return (
@@ -52,12 +42,6 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
         </h1>
         <p className="text-slate-400 mt-2 text-lg">Choose the plan that works best for you.</p>
       </div>
-
-      {error && (
-        <div className="mb-6 px-5 py-3 rounded-2xl text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#FCA5A5' }}>
-          {error}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-3xl mx-auto">
         {/* Free */}
@@ -98,12 +82,11 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
           </ul>
           {isSubscribed ? (
             <button
-              onClick={() => toggle(false)}
-              disabled={loading}
-              className="w-full py-3.5 rounded-full text-sm font-bold transition-all duration-200 disabled:opacity-50 min-h-[44px] hover:scale-[1.01]"
+              onClick={() => requestChange('free')}
+              className="w-full py-3.5 rounded-full text-sm font-bold transition-all duration-200 min-h-[44px] hover:scale-[1.01]"
               style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.4)', color: '#F87171' }}
             >
-              {loading ? 'Updating…' : 'Downgrade to Free'}
+              Downgrade to Free
             </button>
           ) : (
             <div
@@ -160,28 +143,71 @@ export default function SubscriptionClient({ isSubscribed: initial }: { isSubscr
             ))}
           </ul>
           {isSubscribed ? (
-            <div
-              className="w-full py-3.5 text-center text-sm font-bold rounded-full inline-flex items-center justify-center gap-2"
-              style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)', color: '#93C5FD' }}
-            >
-              <Sparkles size={14} strokeWidth={1.75} /> Active — Pro Plan
+            <div className="flex flex-col gap-2">
+              <div
+                className="w-full py-3.5 text-center text-sm font-bold rounded-full inline-flex items-center justify-center gap-2"
+                style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)', color: '#93C5FD' }}
+              >
+                <Sparkles size={14} strokeWidth={1.75} /> Active — Pro Plan
+              </div>
+              {validUntil && (
+                <p className="text-center text-xs text-slate-400">
+                  {days > 0
+                    ? <><span className="text-white font-bold">{days}</span> day{days !== 1 ? 's' : ''} remaining · expires {new Date(validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                    : <span className="text-red-400 font-semibold">Expired</span>
+                  }
+                </p>
+              )}
             </div>
           ) : (
             <button
-              onClick={() => toggle(true)}
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 py-3.5 font-bold text-white rounded-full text-sm disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-95 min-h-[44px]"
+              onClick={() => requestChange('pro')}
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 font-bold text-white rounded-full text-sm transition-all duration-200 hover:scale-[1.02] active:scale-95 min-h-[44px]"
               style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 12px 30px rgba(59,130,246,0.4)' }}
             >
-              {loading ? (
-                <><Loader2 size={14} className="animate-spin" /> Updating…</>
-              ) : (
-                <>Upgrade to Pro — $10/month <ArrowRight size={14} strokeWidth={2.5} /></>
-              )}
+              Upgrade to Pro — $10/month <ArrowRight size={14} strokeWidth={2.5} />
             </button>
           )}
         </div>
       </div>
+
+      {/* Verify modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(8px) saturate(120%)' }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="relative w-full max-w-sm mx-4 rounded-2xl p-8 flex flex-col gap-5"
+            style={{ background: 'linear-gradient(145deg, rgba(15,23,42,0.98), rgba(15,23,42,0.95))', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <X size={18} />
+            </button>
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Verification Required</p>
+              <h2 className="text-xl font-extrabold text-white">
+                {pendingPlan === 'pro' ? 'Upgrade to Pro' : 'Downgrade to Free'}
+              </h2>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Subscription changes can only be made by an admin. Please contact your administrator to {pendingPlan === 'pro' ? 'upgrade your account to Pro' : 'downgrade your account to Free'}.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowModal(false)}
+              className="w-full py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-[1.01]"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 8px 20px rgba(59,130,246,0.3)' }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
