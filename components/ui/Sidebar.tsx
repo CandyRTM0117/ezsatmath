@@ -70,9 +70,16 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
   const router = useRouter()
   const nav = getNav(role)
   const activePath = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : pathname
+  // navigatingHref: set on click, cleared when the new pathname arrives
+  const navigatingHref = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : null
   const supabaseRef = useRef(createClient())
 
   const messagesHref = nav.find(item => item.href.includes('messages'))?.href ?? null
+
+  // Clear optimistic state when navigation completes
+  useEffect(() => {
+    setOptimisticHref(null)
+  }, [pathname])
 
   useEffect(() => {
     if (!messagesHref) return
@@ -170,6 +177,7 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
         <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
           {nav.map(item => {
             const active = activePath.startsWith(item.href)
+            const isNavigating = navigatingHref === item.href
             const { Icon } = item
             const isMessages = item.href.includes('messages')
             const showBadge = isMessages && unreadCount > 0
@@ -194,12 +202,20 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
                   <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full" style={{ background: 'linear-gradient(180deg, #60A5FA, #3B82F6)' }} />
                 )}
                 <div className="relative shrink-0">
-                  <Icon
-                    size={isCollapsed ? 22 : 18}
-                    strokeWidth={1.75}
-                    className={active ? 'text-blue-300' : 'text-slate-400 group-hover:text-slate-200 transition-colors'}
-                  />
-                  {showBadge && isCollapsed && (
+                  {isNavigating ? (
+                    <Loader2
+                      size={isCollapsed ? 22 : 18}
+                      strokeWidth={1.75}
+                      className="animate-spin text-blue-400"
+                    />
+                  ) : (
+                    <Icon
+                      size={isCollapsed ? 22 : 18}
+                      strokeWidth={1.75}
+                      className={active ? 'text-blue-300' : 'text-slate-400 group-hover:text-slate-200 transition-colors'}
+                    />
+                  )}
+                  {showBadge && isCollapsed && !isNavigating && (
                     <span
                       className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
                       style={{ background: '#EF4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }}
@@ -211,16 +227,18 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
                 {!isCollapsed && (
                   <>
                     <span className="truncate flex-1">{item.label}</span>
-                    {showBadge ? (
+                    {isNavigating ? (
+                      <span className="ml-auto text-[10px] font-semibold text-blue-400/70">Loading…</span>
+                    ) : showBadge ? (
                       <span
                         className="ml-auto shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
                         style={{ background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.4)' }}
                       >
                         {badgeLabel}
                       </span>
-                    ) : active && (
+                    ) : active ? (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#60A5FA', boxShadow: '0 0 8px #60A5FA' }} />
-                    )}
+                    ) : null}
                   </>
                 )}
               </Link>

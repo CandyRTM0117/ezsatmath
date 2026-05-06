@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useRef, Component, type ReactNode } from 'react'
+import { useState, useRef, useMemo, Component, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2, Menu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
-import type { Problem, Choice, ProblemCategory } from '@/types'
+import type { Problem, Choice } from '@/types'
 
 type ProblemWithChoices = Problem & { choices?: Choice[] }
 
-const CATEGORIES: ProblemCategory[] = ['Algebra', 'Trigonometry', 'Data Analytics', 'Advanced Math']
 const PAGE_SIZE = 50
 
 const diffStyle = (d: string): React.CSSProperties => ({
@@ -64,6 +63,13 @@ export default function ProblemsClient({
   const [filterCategory, setFilterCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+
+  // Derive categories from actual data so the filter always matches DB values exactly
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>()
+    for (const p of problems) { if (p.category) cats.add(p.category) }
+    return Array.from(cats).sort()
+  }, [problems])
 
   const supabase = useRef(createClient()).current
 
@@ -127,14 +133,9 @@ export default function ProblemsClient({
     }
   }
 
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim()
-
   const displayed = problems.filter(p => {
     if (filterDiff !== 'all' && p.difficulty !== filterDiff) return false
-    if (filterCategory !== 'all') {
-      if (!p.category) return false
-      if (norm(p.category) !== norm(filterCategory)) return false
-    }
+    if (filterCategory !== 'all' && p.category !== filterCategory) return false
     if (search.trim()) {
       const q = search.toLowerCase()
       if (!p.question.toLowerCase().includes(q) && !(p.title ?? '').toLowerCase().includes(q)) return false
@@ -180,7 +181,7 @@ export default function ProblemsClient({
           onChange={handleFilterChange(setFilterCategory)}
           options={[
             { value: 'all', label: 'All categories' },
-            ...CATEGORIES.map(c => ({ value: c, label: c })),
+            ...availableCategories.map(c => ({ value: c, label: c })),
           ]}
         />
         <Dropdown

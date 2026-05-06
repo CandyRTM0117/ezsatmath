@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import { useTheme } from './ThemeProvider'
 import { useLang } from './LanguageProvider'
+import { createClient } from '@/lib/supabase/client'
 
 interface AppShellProps {
   role: 'admin' | 'student' | 'teacher'
@@ -16,6 +17,7 @@ interface AppShellProps {
 
 export default function AppShell({ role, userName, userId, preferredLanguage = 'en', children }: AppShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { registerUser } = useTheme()
   const { registerUser: registerLang } = useLang()
 
@@ -23,6 +25,34 @@ export default function AppShell({ role, userName, userId, preferredLanguage = '
     registerUser(userId)
     registerLang(userId, preferredLanguage)
   }, [userId])
+
+  // Redirect to login if the Supabase session expires or is signed out
+  useEffect(() => {
+    const supabase = createClient()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        router.replace('/login')
+      }
+    })
+
+    // Re-validate session when tab becomes active after being hidden
+    function onVisibility() {
+      if (document.hidden) return
+      supabase.auth.getSession().then(({ data, error }) => {
+        if (error || !data.session) {
+          router.replace('/login')
+        }
+      })
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
 
   const isFullscreen = /\/problems\/[^/]+$/.test(pathname)
 
