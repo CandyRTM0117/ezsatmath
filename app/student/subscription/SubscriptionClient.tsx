@@ -65,7 +65,7 @@ export default function SubscriptionClient({ isSubscribed, validUntil }: { isSub
           )}
           <div className="mb-7">
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Free</p>
-            <p className="text-5xl font-extrabold text-white tracking-tight">$0 <span className="text-base font-normal text-slate-500">/ month</span></p>
+            <p className="text-5xl font-extrabold text-white tracking-tight">0 ₮ <span className="text-base font-normal text-slate-500">/ month</span></p>
           </div>
           <ul className="space-y-3 flex-1 mb-8">
             {FREE_FEATURES.map(f => (
@@ -127,7 +127,7 @@ export default function SubscriptionClient({ isSubscribed, validUntil }: { isSub
                 Recommended
               </span>
             </div>
-            <p className="text-5xl font-extrabold text-white tracking-tight">$10 <span className="text-base font-normal text-slate-500">/ month</span></p>
+            <p className="text-5xl font-extrabold text-white tracking-tight">50,000 ₮ <span className="text-base font-normal text-slate-500">/ month</span></p>
           </div>
           <ul className="space-y-3 flex-1 mb-8">
             {PRO_FEATURES.map(f => (

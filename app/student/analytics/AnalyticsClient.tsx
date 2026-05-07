@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Lock, X, Check, ChevronDown, ChevronUp, Plus, Trash2, Pencil, Calendar, TrendingUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -93,8 +93,27 @@ export default function AnalyticsClient({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [todoLoading, setTodoLoading] = useState(false)
+  const [resetLabel, setResetLabel] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+
+  useEffect(() => {
+    function computeReset() {
+      if (todos.length === 0) { setResetLabel(''); return }
+      const earliest = todos.reduce((min, t) => t.expires_at < min ? t.expires_at : min, todos[0].expires_at)
+      const diff = new Date(earliest).getTime() - Date.now()
+      if (diff <= 0) { setResetLabel('Resetting soon'); return }
+      const d = Math.floor(diff / 86400000)
+      const h = Math.floor((diff % 86400000) / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      if (d > 0) setResetLabel(`Resets in ${d}d ${h}h`)
+      else if (h > 0) setResetLabel(`Resets in ${h}h ${m}m`)
+      else setResetLabel(`Resets in ${m}m`)
+    }
+    computeReset()
+    const id = setInterval(computeReset, 60000)
+    return () => clearInterval(id)
+  }, [todos])
 
   const sessions = groupIntoSessions(exams)
   const sessionCount = sessions.length
@@ -120,6 +139,7 @@ export default function AnalyticsClient({
     days.push({ date: key, count: dayMap[key] ?? 0, day: d, isToday: d === todayNum })
   }
   const maxCount = Math.max(...days.map(d => d.count), 1)
+  const firstDayOfMonth = new Date(year, month, 1).getDay()
 
   const STATS = [
     { label: 'Problems Tried',   value: totalAttempts,          from: '#60A5FA', to: '#3B82F6' },
@@ -277,107 +297,118 @@ export default function AnalyticsClient({
     )
   }
 
-  // Weekly todo widget
-  function TodoWidget() {
-    const completed = todos.filter(t => t.completed).length
-    return (
-      <div className="c-card rounded-2xl p-7 mb-8">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="font-extrabold text-white text-lg tracking-tight">Weekly Study Planner</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Tasks reset every 7 days · {completed}/{todos.length} complete</p>
-          </div>
-          <Calendar size={18} strokeWidth={1.75} className="text-blue-400 shrink-0" />
-        </div>
-
-        {/* Add task input */}
-        <div className="flex gap-2 mb-5">
-          <input
-            ref={inputRef}
-            type="text"
-            value={newTask}
-            onChange={e => setNewTask(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') addTodo() }}
-            placeholder="Add a study task…"
-            className="flex-1 px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
-            onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
-            onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
-          />
-          <button
-            onClick={addTodo}
-            disabled={!newTask.trim() || todoLoading}
-            className="px-4 py-2.5 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02]"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 14px rgba(59,130,246,0.35)' }}
-          >
-            <Plus size={16} strokeWidth={2.5} />
-          </button>
-        </div>
-
-        {/* Task list */}
-        {todos.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-6">No tasks yet. Add one above!</p>
-        ) : (
-          <div className="space-y-2">
-            {todos.map(t => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 p-3 rounded-xl transition-all"
-                style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
+  const completedCount = todos.filter(t => t.completed).length
+  const todoWidget = (
+    <div className="c-card rounded-2xl p-7 mb-8">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="font-extrabold text-white text-lg tracking-tight">Weekly Study Planner</h2>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-xs text-slate-500">{completedCount}/{todos.length} complete</p>
+            {resetLabel && (
+              <span
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+                style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.35)', color: '#FCD34D' }}
               >
-                <button
-                  onClick={() => toggleTodo(t.id, !t.completed)}
-                  className="shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
-                  style={t.completed
-                    ? { background: 'rgba(16,185,129,0.2)', borderColor: '#34D399', color: '#34D399' }
-                    : { borderColor: 'rgba(255,255,255,0.2)', color: 'transparent' }}
-                >
-                  {t.completed && <Check size={11} strokeWidth={3} />}
-                </button>
-
-                {editingId === t.id ? (
-                  <input
-                    type="text"
-                    value={editText}
-                    onChange={e => setEditText(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') saveEdit(t.id)
-                      if (e.key === 'Escape') setEditingId(null)
-                    }}
-                    autoFocus
-                    className="flex-1 bg-transparent text-sm focus:outline-none text-white"
-                    onBlur={() => saveEdit(t.id)}
-                  />
-                ) : (
-                  <span
-                    className="flex-1 text-sm transition-all"
-                    style={{ color: t.completed ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: t.completed ? 'line-through' : 'none' }}
-                  >
-                    {t.task_text}
-                  </span>
-                )}
-
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => { setEditingId(t.id); setEditText(t.task_text) }}
-                    className="p-1.5 rounded-lg transition-colors hover:bg-white/5 text-slate-500 hover:text-slate-300"
-                  >
-                    <Pencil size={13} strokeWidth={2} />
-                  </button>
-                  <button
-                    onClick={() => deleteTodo(t.id)}
-                    className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 text-slate-500 hover:text-red-400"
-                  >
-                    <Trash2 size={13} strokeWidth={2} />
-                  </button>
-                </div>
-              </div>
-            ))}
+                {resetLabel}
+              </span>
+            )}
           </div>
-        )}
+        </div>
+        <Calendar size={18} strokeWidth={1.75} className="text-blue-400 shrink-0" />
       </div>
-    )
-  }
+
+      {/* Add task input */}
+      <div className="flex gap-2 mb-5">
+        <input
+          ref={inputRef}
+          type="text"
+          value={newTask}
+          onChange={e => setNewTask(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTodo() } }}
+          placeholder="Add a study task…"
+          className="flex-1 px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+          style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
+          onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+          onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
+        />
+        <button
+          type="button"
+          onClick={addTodo}
+          disabled={!newTask.trim() || todoLoading}
+          className="px-4 py-2.5 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02]"
+          style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 14px rgba(59,130,246,0.35)' }}
+        >
+          <Plus size={16} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      {/* Task list */}
+      {todos.length === 0 ? (
+        <p className="text-sm text-slate-500 text-center py-6">No tasks yet. Add one above!</p>
+      ) : (
+        <div className="space-y-2">
+          {todos.map(t => (
+            <div
+              key={t.id}
+              className="flex items-center gap-3 p-3 rounded-xl transition-all"
+              style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
+            >
+              <button
+                type="button"
+                onClick={() => toggleTodo(t.id, !t.completed)}
+                className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all"
+                style={t.completed
+                  ? { background: 'rgba(16,185,129,0.2)', border: '2px solid #34D399', color: '#34D399' }
+                  : { background: 'transparent', border: '2px solid rgba(148,163,184,0.5)', color: 'transparent' }}
+              >
+                {t.completed && <Check size={10} strokeWidth={3} />}
+              </button>
+
+              {editingId === t.id ? (
+                <input
+                  type="text"
+                  value={editText}
+                  onChange={e => setEditText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') saveEdit(t.id)
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  autoFocus
+                  className="flex-1 bg-transparent text-sm focus:outline-none text-white"
+                  onBlur={() => saveEdit(t.id)}
+                />
+              ) : (
+                <span
+                  className="flex-1 text-sm transition-all"
+                  style={{ color: t.completed ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: t.completed ? 'line-through' : 'none' }}
+                >
+                  {t.task_text}
+                </span>
+              )}
+
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setEditingId(t.id); setEditText(t.task_text) }}
+                  className="p-1.5 rounded-lg transition-colors hover:bg-white/5 text-slate-500 hover:text-slate-300"
+                >
+                  <Pencil size={13} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteTodo(t.id)}
+                  className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 text-slate-500 hover:text-red-400"
+                >
+                  <Trash2 size={13} strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 
   const premiumContent = (
     <>
@@ -417,43 +448,51 @@ export default function AnalyticsClient({
       <DomainPerformance />
 
       <div className="c-card rounded-2xl p-7 mb-8">
-        <div className="flex items-center justify-between mb-7">
-          <h2 className="font-extrabold text-white text-lg tracking-tight">Problems Tried — {monthName}</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="font-extrabold text-white text-lg tracking-tight">Problems Tried</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{monthName}</p>
+          </div>
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Daily activity</span>
         </div>
-        <div className="flex items-end gap-px h-40">
-          {days.map(d => (
-            <div key={d.date} className="flex-1 flex flex-col items-center group relative">
-              <div
-                className="w-full rounded-t transition-all duration-500"
-                style={{
-                  height: `${(d.count / maxCount) * 100}%`,
-                  minHeight: d.count > 0 ? '4px' : '0',
-                  background: d.isToday
-                    ? 'linear-gradient(180deg, #A78BFA, #7C3AED)'
-                    : d.count > 0
-                      ? 'linear-gradient(180deg, #60A5FA, #3B82F6)'
-                      : 'var(--input-bg)',
-                  boxShadow: d.count > 0 ? (d.isToday ? '0 0 12px rgba(167,139,250,0.5)' : '0 0 12px rgba(96,165,250,0.4)') : 'none',
-                }}
-              />
-              {d.count > 0 && (
-                <div
-                  className="absolute -top-9 left-1/2 -translate-x-1/2 text-white text-xs px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-10"
-                  style={{ background: 'var(--app-bg-alt)', border: '1px solid var(--card-border)' }}
-                >
-                  {d.count} · {d.date.slice(5)}
-                </div>
-              )}
+
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {/* Week day headers */}
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(label => (
+            <div key={label} className="text-center py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              {label}
             </div>
           ))}
-        </div>
-        <div className="flex gap-px mt-1">
+
+          {/* Empty offset cells */}
+          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+            <div key={`offset-${i}`} />
+          ))}
+
+          {/* Day cells */}
           {days.map(d => (
-            <div key={d.date} className="flex-1 text-center">
+            <div key={d.date} className="flex flex-col items-center gap-1">
+              <div
+                className="w-full aspect-square rounded-xl flex items-center justify-center relative transition-all duration-200"
+                style={d.isToday
+                  ? { background: 'linear-gradient(135deg, rgba(167,139,250,0.25), rgba(124,58,237,0.15))', border: '1px solid rgba(167,139,250,0.45)', boxShadow: '0 0 14px rgba(167,139,250,0.25)' }
+                  : d.count > 0
+                    ? { background: 'linear-gradient(135deg, rgba(96,165,250,0.18), rgba(59,130,246,0.1))', border: '1px solid rgba(96,165,250,0.35)' }
+                    : { background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
+              >
+                {d.count > 0 && (
+                  <span
+                    className="text-sm font-extrabold"
+                    style={{ color: d.isToday ? '#C4B5FD' : '#60A5FA' }}
+                  >
+                    {d.count}
+                  </span>
+                )}
+              </div>
               <span
-                className="text-[7px] font-medium"
-                style={{ color: d.isToday ? '#A78BFA' : 'rgba(100,116,139,0.7)' }}
+                className="text-[10px] font-semibold tabular-nums"
+                style={{ color: d.isToday ? '#A78BFA' : 'rgba(100,116,139,0.6)' }}
               >
                 {d.day}
               </span>
@@ -462,7 +501,7 @@ export default function AnalyticsClient({
         </div>
       </div>
 
-      <TodoWidget />
+      {todoWidget}
     </>
   )
 
