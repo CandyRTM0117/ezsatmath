@@ -5,7 +5,7 @@ import { useTheme } from './ThemeProvider'
 
 export default function ThemeToggle() {
   const { theme, toggle } = useTheme()
-  const isLight = theme === 'light'
+  const isLight = (theme as string) === 'light'
 
   return (
     <div className="flex items-center gap-3">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FileText, ClipboardList, LineChart, CreditCard,
   Users, ListChecks, LogOut, ChevronLeft, Menu, X, Bookmark,
@@ -52,7 +52,6 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
   const [signingOut, setSigningOut] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
-  const router = useRouter()
   const nav = getNav(role)
   const activePath = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : pathname
   const navigatingHref = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : null
@@ -91,8 +90,7 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
     setSigningOut(true)
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    window.location.href = '/login'
   }
 
   // Desktop: flex item (relative). Mobile: fixed drawer that slides in.

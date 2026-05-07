@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import ChangePasswordForm from '@/app/student/dashboard/ChangePasswordForm'
-import ThemeToggle from '@/components/ui/ThemeToggle'
 
 export default async function TeacherAccountPage() {
   const supabase = await createClient()
@@ -40,7 +39,6 @@ export default async function TeacherAccountPage() {
                 <span className="text-sm font-medium text-slate-200 truncate">{row.value}</span>
               </div>
             ))}
-            <ThemeToggle />
           </div>
         </div>
 

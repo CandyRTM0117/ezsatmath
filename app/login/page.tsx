@@ -3,10 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
@@ -18,19 +16,15 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) { setError(authError.message); setLoading(false); return }
+    const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    if (authError || !session) { setError(authError?.message ?? 'Login failed'); setLoading(false); return }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Login failed'); setLoading(false); return }
-
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-    router.push(profile?.role === 'admin' ? '/admin/users' : '/student/dashboard')
-    router.refresh()
+    const { data: profile } = await supabase.from('users').select('role').eq('id', session.user.id).single()
+    window.location.href = profile?.role === 'admin' ? '/admin/users' : '/student/dashboard'
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 stage">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full" style={{ maxWidth: '26rem' }}>
         <div className="card">
           <div className="text-center mb-8">
