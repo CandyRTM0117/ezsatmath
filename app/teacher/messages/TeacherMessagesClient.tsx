@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Send, MessageSquare, ArrowLeft, Search, Check, CheckCheck, CornerUpLeft, Trash2, X } from 'lucide-react'
+import { Send, MessageSquare, ArrowLeft, Search, Check, CheckCheck, CornerUpLeft, Trash2, X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Student { id: string; name: string | null; email: string }
@@ -34,6 +34,10 @@ export default function TeacherMessagesClient({
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [threadMessages, setThreadMessages] = useState<Message[]>([])
+  const [loadingThread, setLoadingThread] = useState(false)
+  const [hasMoreMsgs, setHasMoreMsgs] = useState(false)
+  const [threadOffset, setThreadOffset] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
@@ -46,25 +50,66 @@ export default function TeacherMessagesClient({
     )
   }
 
-  const thread = selectedStudent ? getThread(selectedStudent) : []
+  const thread = threadMessages
 
-  function openChat(student: Student) {
-    const t = getThread(student)
+  async function openChat(student: Student) {
     setSelectedStudent(student)
     setView('chat')
     setReplyTo(null)
     setHoveredId(null)
+    setLoadingThread(true)
+    setThreadOffset(0)
+    setThreadMessages([])
+
+    const { data } = await supabase
+      .from('messages')
+      .select('*, sender:users!messages_sender_id_fkey(id, name, email), receiver:users!messages_receiver_id_fkey(id, name, email), problem:problems(id, title, question)')
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${student.id}),and(sender_id.eq.${student.id},receiver_id.eq.${userId})`)
+      .order('created_at', { ascending: false })
+      .range(0, 29)
+
+    const freshMsgs = (data ?? []).reverse()
+    setThreadMessages(freshMsgs)
+    setHasMoreMsgs((data?.length ?? 0) === 30)
     setSeenIds(prev => {
       const next = new Set(prev)
-      t.forEach(m => next.add(m.id))
+      freshMsgs.forEach(m => next.add(m.id))
       return next
     })
+    setMessages(prev => {
+      const without = prev.filter(m =>
+        !(m.sender_id === userId && m.receiver_id === student.id) &&
+        !(m.receiver_id === userId && m.sender_id === student.id)
+      )
+      return [...without, ...freshMsgs]
+    })
+    setLoadingThread(false)
+  }
+
+  async function loadMoreMessages() {
+    if (!selectedStudent || loadingThread) return
+    const newOffset = threadOffset + 30
+    setLoadingThread(true)
+    const { data } = await supabase
+      .from('messages')
+      .select('*, sender:users!messages_sender_id_fkey(id, name, email), receiver:users!messages_receiver_id_fkey(id, name, email), problem:problems(id, title, question)')
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${selectedStudent.id}),and(sender_id.eq.${selectedStudent.id},receiver_id.eq.${userId})`)
+      .order('created_at', { ascending: false })
+      .range(newOffset, newOffset + 29)
+    const olderMsgs = (data ?? []).reverse()
+    setThreadMessages(prev => [...olderMsgs, ...prev])
+    setHasMoreMsgs((data?.length ?? 0) === 30)
+    setThreadOffset(newOffset)
+    setLoadingThread(false)
   }
 
   function backToList() {
     setView('list')
     setReplyTo(null)
     setHoveredId(null)
+    setThreadMessages([])
+    setThreadOffset(0)
+    setHasMoreMsgs(false)
   }
 
   function isSeen(msg: Message) {
@@ -81,19 +126,36 @@ export default function TeacherMessagesClient({
     if (view === 'chat') {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [thread.length, view])
+  }, [threadMessages.length, view])
 
   useEffect(() => {
-    if (!selectedStudent) return
-    const interval = setInterval(async () => {
+    const fetchLatest = async () => {
       const { data } = await supabase
         .from('messages')
         .select('*, sender:users!messages_sender_id_fkey(id, name, email), receiver:users!messages_receiver_id_fkey(id, name, email), problem:problems(id, title, question)')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: true })
-      if (data) setMessages(data as any[])
-    }, 10000)
-    return () => clearInterval(interval)
+      if (!data) return
+      setMessages(data as any[])
+      if (selectedStudent) {
+        setThreadMessages(prev => {
+          const prevIds = new Set(prev.map(m => m.id))
+          const newMsgs = (data as Message[]).filter(m =>
+            !prevIds.has(m.id) &&
+            ((m.sender_id === userId && m.receiver_id === selectedStudent.id) ||
+             (m.receiver_id === userId && m.sender_id === selectedStudent.id))
+          )
+          return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev
+        })
+      }
+    }
+    const handleVisibility = () => { if (!document.hidden) fetchLatest() }
+    document.addEventListener('visibilitychange', handleVisibility)
+    const interval = setInterval(fetchLatest, 10000)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [selectedStudent, userId, supabase])
 
   async function sendMessage() {
@@ -118,6 +180,7 @@ export default function TeacherMessagesClient({
 
     if (data) {
       setMessages(prev => [...prev, data as any])
+      setThreadMessages(prev => [...prev, data as any])
       setSeenIds(prev => new Set(prev).add((data as any).id))
     }
     setContent('')
@@ -255,10 +318,28 @@ export default function TeacherMessagesClient({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
-        {thread.length === 0 && (
+        {loadingThread && thread.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 size={20} className="animate-spin text-slate-500" />
+          </div>
+        )}
+        {!loadingThread && thread.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
             <MessageSquare size={32} strokeWidth={1.25} />
             <p className="text-sm">Start a conversation with {displayName(selectedStudent)}</p>
+          </div>
+        )}
+        {hasMoreMsgs && thread.length > 0 && (
+          <div className="flex justify-center">
+            <button
+              onClick={loadMoreMessages}
+              disabled={loadingThread}
+              className="text-xs px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}
+            >
+              {loadingThread ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
+              Load earlier messages
+            </button>
           </div>
         )}
         {thread.map(m => {
@@ -295,6 +376,7 @@ export default function TeacherMessagesClient({
                       onClick={async () => {
                         await supabase.from('messages').delete().eq('id', m.id)
                         setMessages(prev => prev.filter(x => x.id !== m.id))
+                        setThreadMessages(prev => prev.filter(x => x.id !== m.id))
                       }}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/5 transition-all"
                       title="Delete"

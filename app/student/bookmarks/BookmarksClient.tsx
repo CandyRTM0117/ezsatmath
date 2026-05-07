@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, Component, type ReactNode } from 'react'
+import { useState, useRef, useEffect, Component, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, X, Check, CircleX, CheckCircle2, BookmarkX, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -59,6 +59,23 @@ export default function BookmarksClient({
   const [page, setPage] = useState(1)
 
   const supabase = useRef(createClient()).current
+
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.hidden) return
+      const { data: bookmarkRows } = await supabase
+        .from('bookmarks')
+        .select('problem_id, problems(*, choices(*))')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+      if (bookmarkRows) {
+        const fresh = bookmarkRows.map((b: any) => b.problems).filter(Boolean) as ProblemWithChoices[]
+        setProblems(fresh)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [userId, supabase])
 
   function openProblem(p: ProblemWithChoices) {
     setSelected(p)
