@@ -48,8 +48,7 @@ export default function Dropdown({ value, onChange, options, className = '' }: D
           size={14}
           strokeWidth={2}
           className="shrink-0 transition-transform duration-200"
-          style={{ color: 'var(--text-3)' }}
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          style={{ color: 'var(--text-3)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
       </button>
 
