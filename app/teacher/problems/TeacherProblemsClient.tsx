@@ -173,7 +173,7 @@ export default function TeacherProblemsClient({
           >
             <ProblemErrorBoundary>
               <div
-                className="flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
+                className="c-modal flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
                 onClick={e => e.stopPropagation()}
                 style={{
                   background: 'var(--app-bg-alt)',
@@ -367,7 +367,7 @@ export default function TeacherProblemsClient({
         document.body
       )}
 
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+      <div className="c-card rounded-2xl overflow-hidden">
         <div
           className="hidden md:grid items-center px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest select-none"
           style={{

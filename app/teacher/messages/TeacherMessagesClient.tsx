@@ -290,8 +290,8 @@ export default function TeacherMessagesClient({
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden border border-white/10"
-      style={{ height: 'calc(100svh - 7rem)', background: 'var(--chat-bg)' }}
+      className="c-card flex flex-col rounded-2xl overflow-hidden"
+      style={{ height: 'calc(100dvh - 6rem)', maxHeight: 'calc(100dvh - 6rem)', background: 'var(--chat-bg)' }}
     >
       {/* Header */}
       <div

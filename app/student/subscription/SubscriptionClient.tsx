@@ -21,7 +21,7 @@ const FREE_FEATURES = [
 function remainingDays(validUntil: string | null): number {
   if (!validUntil) return 0
   const diff = new Date(validUntil).getTime() - Date.now()
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
 }
 
 export default function SubscriptionClient({ isSubscribed, validUntil }: { isSubscribed: boolean; validUntil: string | null }) {
@@ -69,10 +69,9 @@ export default function SubscriptionClient({ isSubscribed, validUntil }: { isSub
           </div>
           <ul className="space-y-3 flex-1 mb-8">
             {FREE_FEATURES.map(f => (
-              <li key={f} className="flex items-center gap-3 text-sm text-slate-300">
+              <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="text-sm text-slate-300">
                 <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+                  style={{ width: '1.25rem', height: '1.25rem', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                 >
                   <Check size={11} strokeWidth={2.5} className="text-slate-400" />
                 </span>
@@ -131,10 +130,9 @@ export default function SubscriptionClient({ isSubscribed, validUntil }: { isSub
           </div>
           <ul className="space-y-3 flex-1 mb-8">
             {PRO_FEATURES.map(f => (
-              <li key={f} className="flex items-center gap-3 text-sm text-slate-200">
+              <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="text-sm text-slate-200">
                 <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)' }}
+                  style={{ width: '1.25rem', height: '1.25rem', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)' }}
                 >
                   <Check size={11} strokeWidth={2.5} className="text-blue-300" />
                 </span>

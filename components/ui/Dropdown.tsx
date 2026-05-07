@@ -34,20 +34,21 @@ export default function Dropdown({ value, onChange, options, className = '' }: D
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap select-none min-w-[10rem]"
+        className="w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap select-none min-w-[10rem]"
         style={{
           background: 'var(--input-bg)',
           border: '1px solid var(--input-border)',
-          color: 'var(--text-primary)',
+          color: 'var(--text-1)',
         }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--input-textarea-bg)')}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-bg-hi)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'var(--input-bg)')}
       >
         <span>{current?.label ?? 'Select'}</span>
         <ChevronDown
           size={14}
           strokeWidth={2}
-          className="text-slate-400 shrink-0 transition-transform duration-200"
+          className="shrink-0 transition-transform duration-200"
+          style={{ color: 'var(--text-3)' }}
           style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
       </button>
@@ -70,19 +71,23 @@ export default function Dropdown({ value, onChange, options, className = '' }: D
             key={opt.value}
             type="button"
             onClick={() => { onChange(opt.value); setOpen(false) }}
-            className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-              i > 0 ? 'border-t border-white/5' : ''
-            } ${
-              value === opt.value
-                ? 'text-blue-300 font-semibold'
-                : 'text-slate-300 hover:text-white'
-            }`}
-            style={value === opt.value ? { background: 'rgba(59,130,246,0.12)' } : undefined}
+            className={`w-full text-left px-4 py-2.5 text-sm transition-colors font-medium ${i > 0 ? 'border-t' : ''}`}
+            style={{
+              color: value === opt.value ? 'var(--accent-cyan)' : 'var(--text-2)',
+              background: value === opt.value ? 'rgba(34,211,238,0.10)' : undefined,
+              borderColor: 'var(--glass-border)',
+            }}
             onMouseEnter={e => {
-              if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = 'var(--input-bg)'
+              if (value !== opt.value) {
+                (e.currentTarget as HTMLElement).style.background = 'var(--glass-bg-hi)'
+                ;(e.currentTarget as HTMLElement).style.color = 'var(--text-1)'
+              }
             }}
             onMouseLeave={e => {
-              if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = ''
+              if (value !== opt.value) {
+                (e.currentTarget as HTMLElement).style.background = ''
+                ;(e.currentTarget as HTMLElement).style.color = 'var(--text-2)'
+              }
             }}
           >
             {opt.label}

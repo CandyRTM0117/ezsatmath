@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fusion Design System — Demo</title>
+  <link rel="stylesheet" href="./globals.css" />
+</head>
+<body>
+  <div class="container stage">
+
+    <!-- NAV -->
+    <nav class="nav" aria-label="Primary">
+      <span class="nav-brand">◆ Fusion</span>
+      <div class="nav-links">
+        <a class="nav-link" aria-current="page">Overview</a>
+        <a class="nav-link">Components</a>
+        <a class="nav-link">Tokens</a>
+        <a class="nav-link">Docs</a>
+      </div>
+      <button class="btn btn-ghost" type="button">Sign in</button>
+    </nav>
+
+    <!-- HERO -->
+    <section style="padding: 3rem 0 1.5rem; transform-style: preserve-3d;">
+      <span class="badge badge-violet">v1.0 · Glass × Neu × 3D</span>
+      <h1 style="margin-top: 0.75rem;">Surfaces that breathe.<br/>Buttons that push back.</h1>
+      <p style="max-width: 56ch; margin-top: 0.75rem;">
+        A unified design language fusing frosted glass, soft extruded shadows,
+        and live perspective depth. Hover anything.
+      </p>
+      <div class="row" style="margin-top: 1.5rem;">
+        <button class="btn btn-primary">Get started</button>
+        <button class="btn">Read the spec</button>
+        <button class="btn btn-ghost">View source</button>
+      </div>
+    </section>
+
+    <!-- CARDS -->
+    <section class="grid" style="margin-top: 1.5rem;">
+      <article class="card">
+        <span class="badge badge-cyan">Glassmorphism</span>
+        <h3 class="card-title" style="margin-top: 0.6rem;">Frosted surface</h3>
+        <p class="card-body">Backdrop blur, luminous border, mesh gradient bleed-through.</p>
+        <div class="card-footer">
+          <button class="btn">Inspect</button>
+          <button class="btn btn-primary">Use</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="badge badge-violet">Neumorphism</span>
+        <h3 class="card-title" style="margin-top: 0.6rem;">Extruded form</h3>
+        <p class="card-body">Dual-shadow lighting model — top-left light, bottom-right dark.</p>
+        <div class="card-footer">
+          <button class="btn">Inspect</button>
+          <button class="btn btn-primary">Use</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="badge badge-rose">Perspective</span>
+        <h3 class="card-title" style="margin-top: 0.6rem;">3D tilt on hover</h3>
+        <p class="card-body">rotateX/Y with translateZ depth layers on title, body, footer.</p>
+        <div class="card-footer">
+          <button class="btn">Inspect</button>
+          <button class="btn btn-primary">Use</button>
+        </div>
+      </article>
+    </section>
+
+    <!-- FORM -->
+    <section class="card" style="margin-top: 2rem;">
+      <h3 class="card-title">Recessed inputs</h3>
+      <p class="card-body">Inset neumorphic well, glass border ignites on focus.</p>
+
+      <div class="row" style="margin-top: 1.25rem;">
+        <div class="col field">
+          <label class="label" for="email">Email</label>
+          <input id="email" class="input" type="email" placeholder="you@fusion.dev" />
+        </div>
+        <div class="col field">
+          <label class="label" for="role">Role</label>
+          <input id="role" class="input" type="text" placeholder="Designer" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-top: 1rem;">
+        <label class="label" for="msg">Message</label>
+        <textarea id="msg" class="textarea" placeholder="Tell us what you're building…"></textarea>
+      </div>
+
+      <div class="card-footer between" style="margin-top: 1.25rem;">
+        <div class="row" style="gap: 0.4rem;">
+          <span class="badge badge-success">● Live</span>
+          <span class="badge badge-danger">P1</span>
+          <span class="badge">Draft</span>
+        </div>
+        <div class="row" style="gap: 0.4rem;">
+          <button class="btn btn-ghost" type="button">Cancel</button>
+          <button class="btn btn-primary" type="submit">Submit</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL DEMO -->
+    <section style="margin-top: 2rem;">
+      <button class="btn btn-primary" onclick="document.getElementById('m').style.display='flex'">Open modal</button>
+    </section>
+
+    <div id="m" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
+        <h3 id="mt" class="modal-title">Confirm fusion</h3>
+        <p class="modal-body">
+          You're about to commit a frosted, extruded, perspective-warped surface
+          to production. There is no going back.
+        </p>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="document.getElementById('m').style.display='none'">Cancel</button>
+          <button class="btn btn-primary" onclick="document.getElementById('m').style.display='none'">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

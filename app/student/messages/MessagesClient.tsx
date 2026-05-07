@@ -239,8 +239,8 @@ export default function MessagesClient({
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden border border-white/10"
-      style={{ height: 'calc(100svh - 7rem)', background: 'var(--chat-bg)' }}
+      className="c-card rounded-2xl overflow-hidden"
+      style={{ height: 'calc(100vh - 8rem)', maxHeight: 'calc(100vh - 8rem)', background: 'var(--chat-bg)', display: 'flex', flexDirection: 'column', padding: 0 }}
     >
       {/* Header */}
       <div
@@ -347,15 +347,15 @@ export default function MessagesClient({
                   >
                     {bodyContent}
                   </div>
-                  {/* Time + seen */}
-                  <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                    <p className="text-[10px] text-slate-600">
+                  {/* Time + seen — inline flex to guarantee same row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-3)' }}>
                       {new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    </span>
                     {isMine && (
                       seen
-                        ? <CheckCheck size={12} strokeWidth={2} className="text-blue-400" />
-                        : <Check size={12} strokeWidth={2} className="text-slate-500" />
+                        ? <CheckCheck size={12} strokeWidth={2} style={{ color: '#60A5FA', flexShrink: 0 }} />
+                        : <Check size={12} strokeWidth={2} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
                     )}
                   </div>
                 </div>
@@ -390,40 +390,39 @@ export default function MessagesClient({
       )}
 
       {/* Input */}
-      <div className="px-6 py-4 shrink-0" style={{ borderTop: '1px solid var(--chat-header-border)' }}>
-        {problems.length > 0 && (
-          <select
-            value={selectedProblemId}
-            onChange={e => setSelectedProblemId(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-xs focus:outline-none transition-all mb-3"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
-          >
-            <option value="">Reference a problem (optional)</option>
-            {problems.map(p => (
-              <option key={p.id} value={p.id}>{p.title ?? p.question.slice(0, 60)}</option>
-            ))}
-          </select>
-        )}
-        <div className="flex gap-3 items-end">
-          <textarea
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            placeholder="Type a message…"
-            rows={3}
-            className="flex-1 px-4 py-3 rounded-xl text-sm focus:outline-none transition-all resize-none min-h-[80px]"
-            style={{ background: 'var(--input-textarea-bg)', border: '1px solid var(--input-textarea-border)', color: 'var(--input-color)' }}
-            onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.6)')}
-            onBlur={e => (e.target.style.borderColor = 'var(--input-textarea-border)')}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!content.trim() || sending}
-            className="px-4 py-3 rounded-xl font-bold text-white transition-all disabled:opacity-40 hover:scale-105 active:scale-95 shrink-0"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 16px rgba(59,130,246,0.35)' }}
-          >
-            <Send size={16} strokeWidth={2} />
-          </button>
+      <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid var(--chat-header-border)' }}>
+        <div style={{ border: '1px solid var(--input-border)', borderRadius: '1rem', padding: '0.75rem', background: 'var(--input-bg)' }}>
+          {problems.length > 0 && (
+            <select
+              value={selectedProblemId}
+              onChange={e => setSelectedProblemId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-xs focus:outline-none transition-all mb-2"
+              style={{ background: 'transparent', border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
+            >
+              <option value="">Reference a problem (optional)</option>
+              {problems.map(p => (
+                <option key={p.id} value={p.id}>{p.title ?? p.question.slice(0, 60)}</option>
+              ))}
+            </select>
+          )}
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+              placeholder="Type a message…"
+              rows={3}
+              className="focus:outline-none resize-none"
+              style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--input-color)', fontSize: '0.875rem', minHeight: '72px' }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!content.trim() || sending}
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', boxShadow: '0 4px 16px rgba(59,130,246,0.35)', padding: '0.625rem', borderRadius: '0.625rem', color: 'white', flexShrink: 0, opacity: (!content.trim() || sending) ? 0.4 : 1, transition: 'opacity 0.2s' }}
+            >
+              <Send size={16} strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -4,22 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard,
-  FileText,
-  ClipboardList,
-  LineChart,
-  CreditCard,
-  Users,
-  ListChecks,
-  LogOut,
-  ChevronLeft,
-  Menu,
-  X,
-  Bookmark,
-  MessageSquare,
-  Loader2,
-  UserCircle,
-  type LucideIcon,
+  LayoutDashboard, FileText, ClipboardList, LineChart, CreditCard,
+  Users, ListChecks, LogOut, ChevronLeft, Menu, X, Bookmark,
+  MessageSquare, Loader2, UserCircle, type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -37,7 +24,6 @@ const adminNav: NavItem[] = [
   { href: '/admin/exams',    label: 'Exam Tracker', Icon: ListChecks },
   { href: '/admin/messages', label: 'Messages',     Icon: MessageSquare },
 ]
-
 const studentNav: NavItem[] = [
   { href: '/student/dashboard',    label: 'Dashboard',    Icon: LayoutDashboard },
   { href: '/student/problems',     label: 'Problems',     Icon: FileText },
@@ -47,11 +33,10 @@ const studentNav: NavItem[] = [
   { href: '/student/messages',     label: 'Messages',     Icon: MessageSquare },
   { href: '/student/subscription', label: 'Subscription', Icon: CreditCard },
 ]
-
 const teacherNav: NavItem[] = [
-  { href: '/teacher/problems',  label: 'Problems', Icon: FileText },
-  { href: '/teacher/messages',  label: 'Messages', Icon: MessageSquare },
-  { href: '/teacher/account',   label: 'Account',  Icon: UserCircle },
+  { href: '/teacher/problems', label: 'Problems', Icon: FileText },
+  { href: '/teacher/messages', label: 'Messages', Icon: MessageSquare },
+  { href: '/teacher/account',  label: 'Account',  Icon: UserCircle },
 ]
 
 function getNav(role: SidebarProps['role']) {
@@ -70,16 +55,12 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
   const router = useRouter()
   const nav = getNav(role)
   const activePath = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : pathname
-  // navigatingHref: set on click, cleared when the new pathname arrives
   const navigatingHref = optimisticHref && !pathname.startsWith(optimisticHref) ? optimisticHref : null
   const supabaseRef = useRef(createClient())
 
   const messagesHref = nav.find(item => item.href.includes('messages'))?.href ?? null
 
-  // Clear optimistic state when navigation completes
-  useEffect(() => {
-    setOptimisticHref(null)
-  }, [pathname])
+  useEffect(() => { setOptimisticHref(null) }, [pathname])
 
   useEffect(() => {
     if (!messagesHref) return
@@ -114,67 +95,79 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
     router.refresh()
   }
 
+  // Desktop: flex item (relative). Mobile: fixed drawer that slides in.
+  const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+  const sidebarStyle: React.CSSProperties = {
+    width: isCollapsed ? '5rem' : '14rem',
+    transition: 'transform 0.3s var(--ease), width 0.3s var(--ease)',
+    display: 'flex', flexDirection: 'column',
+    flexShrink: 0,
+    // mobile-only positioning via CSS class below; inline only handles transform when open
+    transform: isOpen ? 'translateX(0)' : undefined,
+  }
+  // Tag the aside so CSS can apply fixed/relative per breakpoint without inline mediaqueries
+  void isDesktop
+
   return (
     <>
-      {/* Mobile hamburger */}
+      {/* Mobile hamburger — hidden on desktop via .mobile-only (defined after .btn in CSS) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           aria-label="Open menu"
-          className="md:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg transition-all duration-200 hover:scale-105"
-          style={{ background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="mobile-only btn"
+          style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 50, width: '2.6rem', height: '2.6rem', padding: 0 }}
         >
-          <Menu size={18} strokeWidth={2} className="text-white" />
+          <Menu size={18} strokeWidth={2} />
         </button>
       )}
 
       {/* Mobile backdrop */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/60 z-30 fade-in" onClick={() => setIsOpen(false)} />
+        <div
+          className="c-modal-backdrop mobile-only fade-in"
+          style={{ position: 'fixed', inset: 0, zIndex: 30 }}
+          onClick={() => setIsOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
       <aside
-        className={[
-          'fixed md:relative inset-y-0 left-0 z-40',
-          'h-full flex flex-col shrink-0',
-          'transition-all duration-300 ease-in-out',
-          'w-56',
-          isCollapsed ? 'md:w-20' : 'md:w-60',
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-        ].join(' ')}
-        style={{
-          background: 'linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%)',
-          borderRight: '1px solid rgba(255,255,255,0.06)',
-        }}
+        className="c-sidebar"
+        data-open={isOpen}
+        style={sidebarStyle}
       >
         {/* Logo row */}
-        <div className="flex items-center justify-between px-4 py-5 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center justify-between" style={{ padding: '1.1rem 1rem', borderBottom: '1px solid var(--glass-border)' }}>
           {isCollapsed ? (
-            <span className="text-lg font-extrabold mx-auto select-none bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">Ez</span>
+            <span className="text-lg font-extrabold mx-auto" style={{
+              background: 'linear-gradient(135deg, var(--text-1), var(--accent-violet))',
+              WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>Ez</span>
           ) : (
-            <div className="overflow-hidden">
-              <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap">
-                <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Ez</span>
-                <span className="text-blue-400">SAT</span>
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap" style={{ margin: 0 }}>
+                Ez<span style={{ color: 'var(--accent-violet)' }}>SAT</span>
               </h1>
-              <p className="text-[11px] font-semibold mt-0.5 capitalize whitespace-nowrap tracking-widest uppercase"
-                style={{ color: 'rgba(148,163,184,0.55)' }}>
+              <p className="text-xs uppercase tracking-widest font-semibold mt-1" style={{ color: 'var(--text-3)' }}>
                 {role}
               </p>
             </div>
           )}
-          <button
-            onClick={() => setIsOpen(false)}
-            aria-label="Close menu"
-            className={['md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200', isCollapsed ? 'hidden' : ''].join(' ')}
-          >
-            <X size={16} strokeWidth={2.5} />
-          </button>
+          {isOpen && !isCollapsed && (
+            <button
+              onClick={() => setIsOpen(false)}
+              aria-label="Close menu"
+              className="mobile-only btn btn-ghost"
+              style={{ padding: '0.4rem', borderRadius: 'var(--r-sm)' }}
+            >
+              <X size={16} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto stack" style={{ padding: '1rem 0.75rem', gap: '0.25rem' }}>
           {nav.map(item => {
             const active = activePath.startsWith(item.href)
             const isNavigating = navigatingHref === item.href
@@ -186,58 +179,60 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch={true}
+                prefetch
                 onClick={() => { setIsOpen(false); setOptimisticHref(item.href) }}
                 title={isCollapsed ? item.label : undefined}
-                className={[
-                  'group flex items-center rounded-xl text-sm font-semibold transition-all duration-200 relative',
-                  isCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-3 py-2.5',
-                  active ? 'text-white' : 'text-slate-400 hover:text-white',
-                ].join(' ')}
-                style={active ? { background: 'linear-gradient(90deg, rgba(59,130,246,0.18), rgba(59,130,246,0.08))', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.25)' } : undefined}
-                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
-                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = '' }}
+                className="c-nav-item"
+                aria-current={active ? 'page' : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : '0.75rem',
+                  padding: isCollapsed ? '0.7rem 0' : '0.6rem 0.85rem',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
+                  fontSize: '0.875rem', fontWeight: 500,
+                  color: active ? 'var(--text-1)' : 'var(--text-2)',
+                  position: 'relative',
+                }}
               >
                 {active && !isCollapsed && (
-                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full" style={{ background: 'linear-gradient(180deg, #60A5FA, #3B82F6)' }} />
+                  <span style={{
+                    position: 'absolute', left: 0, top: 8, bottom: 8, width: 3,
+                    borderRadius: '0 4px 4px 0',
+                    background: 'linear-gradient(180deg, var(--accent-cyan), var(--accent-violet))',
+                  }} />
                 )}
-                <div className="relative shrink-0">
-                  {isNavigating ? (
-                    <Loader2
-                      size={isCollapsed ? 22 : 18}
-                      strokeWidth={1.75}
-                      className="animate-spin text-blue-400"
-                    />
-                  ) : (
-                    <Icon
-                      size={isCollapsed ? 22 : 18}
-                      strokeWidth={1.75}
-                      className={active ? 'text-blue-300' : 'text-slate-400 group-hover:text-slate-200 transition-colors'}
-                    />
-                  )}
+                <span style={{ position: 'relative', display: 'inline-flex' }}>
+                  {isNavigating
+                    ? <Loader2 size={isCollapsed ? 22 : 18} strokeWidth={1.75} className="animate-spin" style={{ color: 'var(--accent-cyan)' }} />
+                    : <Icon size={isCollapsed ? 22 : 18} strokeWidth={1.75} style={{ color: active ? 'var(--accent-pearl)' : 'currentColor' }} />}
                   {showBadge && isCollapsed && !isNavigating && (
-                    <span
-                      className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
-                      style={{ background: '#EF4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }}
-                    >
-                      {badgeLabel}
-                    </span>
+                    <span style={{
+                      position: 'absolute', top: -6, right: -8,
+                      minWidth: 16, height: 16, padding: '0 4px',
+                      borderRadius: 999, fontSize: 9, fontWeight: 700,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', background: 'var(--danger)',
+                      boxShadow: '0 0 8px rgba(248,113,113,0.5)',
+                    }}>{badgeLabel}</span>
                   )}
-                </div>
+                </span>
                 {!isCollapsed && (
                   <>
                     <span className="truncate flex-1">{item.label}</span>
                     {isNavigating ? (
-                      <span className="ml-auto text-[10px] font-semibold text-blue-400/70">Loading…</span>
+                      <span className="text-xs" style={{ color: 'var(--accent-cyan)', opacity: 0.8 }}>Loading…</span>
                     ) : showBadge ? (
-                      <span
-                        className="ml-auto shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
-                        style={{ background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.4)' }}
-                      >
-                        {badgeLabel}
-                      </span>
+                      <span style={{
+                        minWidth: 18, height: 18, padding: '0 5px',
+                        borderRadius: 999, fontSize: 10, fontWeight: 700,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', background: 'var(--danger)',
+                        boxShadow: '0 0 8px rgba(248,113,113,0.4)',
+                      }}>{badgeLabel}</span>
                     ) : active ? (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#60A5FA', boxShadow: '0 0 8px #60A5FA' }} />
+                      <span style={{
+                        width: 6, height: 6, borderRadius: 999,
+                        background: 'var(--accent-cyan)', boxShadow: 'var(--glow-cyan)',
+                      }} />
                     ) : null}
                   </>
                 )}
@@ -246,26 +241,40 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
           })}
         </nav>
 
-        {/* Bottom: user + sign-out + collapse toggle */}
-        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className={['flex items-center gap-3 px-3 py-3', isCollapsed ? 'justify-center' : ''].join(' ')}>
+        {/* Footer: user + sign out + collapse */}
+        <div style={{ borderTop: '1px solid var(--glass-border)' }}>
+          <div className="flex items-center gap-3" style={{ padding: '0.75rem 1rem', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
             <div
               title={isCollapsed ? userName : undefined}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #60A5FA, #1D4ED8)', boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(59,130,246,0.3)' }}
+              style={{
+                width: 32, height: 32, borderRadius: 999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, color: '#0B0F25', flexShrink: 0,
+                background: 'linear-gradient(135deg, var(--accent-pearl), var(--accent-violet))',
+                boxShadow: '0 0 0 1px rgba(255,255,255,0.18), 0 4px 12px rgba(139,92,246,0.35)',
+              }}
             >
               {(userName[0] ?? '?').toUpperCase()}
             </div>
-            {!isCollapsed && <p className="text-xs font-semibold text-slate-300 truncate flex-1">{userName}</p>}
+            {!isCollapsed && <p className="text-xs font-semibold truncate flex-1" style={{ color: 'var(--text-2)', margin: 0 }}>{userName}</p>}
           </div>
 
           <button
             onClick={handleLogout}
             disabled={signingOut}
             title={isCollapsed ? 'Sign out' : undefined}
-            className={['w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-500 hover:text-red-400 transition-all duration-200 disabled:opacity-50', isCollapsed ? 'justify-center' : ''].join(' ')}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
-            onMouseLeave={e => (e.currentTarget.style.background = '')}
+            className="w-full flex items-center gap-2 transition-colors"
+            style={{
+              padding: '0.7rem 1rem',
+              fontSize: 12, fontWeight: 600,
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              color: 'var(--text-3)',
+              background: 'transparent',
+              border: 'none', cursor: signingOut ? 'not-allowed' : 'pointer',
+              opacity: signingOut ? 0.5 : 1,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.08)'; e.currentTarget.style.color = 'var(--danger)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-3)' }}
           >
             {signingOut
               ? <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
@@ -276,19 +285,24 @@ export default function Sidebar({ role, userName, userId }: SidebarProps) {
           <button
             onClick={() => setIsCollapsed(c => !c)}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden md:flex w-full items-center justify-center py-3 text-slate-600 hover:text-slate-300 transition-all duration-200"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-            onMouseLeave={e => (e.currentTarget.style.background = '')}
+            className="hidden md:flex w-full items-center justify-center transition-colors"
+            style={{
+              padding: '0.75rem 0',
+              color: 'var(--text-3)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              borderTop: '1px solid var(--glass-border)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <ChevronLeft
-              size={14}
-              strokeWidth={2}
-              style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 300ms ease' }}
+              size={14} strokeWidth={2}
+              style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s var(--ease)' }}
             />
           </button>
         </div>
       </aside>
+
     </>
   )
 }

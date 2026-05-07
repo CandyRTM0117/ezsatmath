@@ -8,7 +8,7 @@ export default function AdminExamsLoading() {
         <Skeleton className="h-11 w-44 rounded-xl" />
       </div>
 
-      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
+      <div className="c-card rounded-2xl overflow-hidden">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="px-5 py-4 flex items-center gap-4 border-b border-white/5 last:border-0">
             <Skeleton className="h-4 w-32 rounded-md" />

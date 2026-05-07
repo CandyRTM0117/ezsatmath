@@ -83,15 +83,10 @@ export default function ExamTrackerClient({ initialExams }: { initialExams: Exam
       </div>
 
       {selectedExam && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto py-8 px-4 fade-in" onClick={() => { setSelectedExam(null); setPairedExam(null) }}>
+        <div className="c-modal-backdrop fixed inset-0 flex items-center justify-center z-50 overflow-y-auto py-8 px-4 fade-in" onClick={() => { setSelectedExam(null); setPairedExam(null) }}>
           <div
-            className="rounded-2xl w-full max-w-2xl p-7 zoom-in-95"
+            className="c-modal rounded-2xl w-full max-w-2xl p-7 zoom-in-95"
             onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--app-bg-alt)',
-              border: '1px solid var(--card-border)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.1)',
-            }}
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-5">

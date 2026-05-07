@@ -299,9 +299,8 @@ export default function ExamClient({
               onClick={() => { setReviewItem(null); setDetailLightbox(false) }}
             >
               <div
-                className="flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
+                className="c-modal flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
                 onClick={e => e.stopPropagation()}
-                style={{ background: 'var(--app-bg-alt)', border: '1px solid var(--card-border)', boxShadow: '0 40px 80px rgba(0,0,0,0.4)' }}
               >
                 {/* Header */}
                 <div
@@ -480,7 +479,7 @@ export default function ExamClient({
               if (!record) return null
               const partPct = Math.round(record.score / PART_TOTAL * 100)
               return (
-                <div key={label} className="rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+                <div key={label} className="c-card rounded-2xl overflow-hidden mb-6">
                   {/* Part header */}
                   <div
                     className="px-5 py-3 flex items-center justify-between"

@@ -182,8 +182,8 @@ export default function AdminMessagesClient({
   // ---- CHAT PANEL ----
   const chatPanel = selectedUser ? (
     <div
-      className="flex-1 flex flex-col rounded-2xl border border-white/10 overflow-hidden"
-      style={{ background: 'var(--chat-bg)', height: 'calc(100svh - 7rem)' }}
+      className="c-card flex-1 flex flex-col rounded-2xl overflow-hidden"
+      style={{ background: 'var(--chat-bg)', height: 'calc(100dvh - 6rem)', maxHeight: 'calc(100dvh - 6rem)' }}
     >
       {/* Header */}
       <div

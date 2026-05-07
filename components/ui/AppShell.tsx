@@ -26,28 +26,18 @@ export default function AppShell({ role, userName, userId, preferredLanguage = '
     registerLang(userId, preferredLanguage)
   }, [userId])
 
-  // Redirect to login if the Supabase session expires or is signed out
   useEffect(() => {
     const supabase = createClient()
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        router.replace('/login')
-      }
+      if (event === 'SIGNED_OUT') router.replace('/login')
     })
-
-    // Re-validate session when tab becomes active after being hidden
     function onVisibility() {
       if (document.hidden) return
       supabase.auth.getSession().then(({ data, error }) => {
-        if (error || !data.session) {
-          router.replace('/login')
-        }
+        if (error || !data.session) router.replace('/login')
       })
     }
-
     document.addEventListener('visibilitychange', onVisibility)
-
     return () => {
       subscription.unsubscribe()
       document.removeEventListener('visibilitychange', onVisibility)
@@ -58,28 +48,24 @@ export default function AppShell({ role, userName, userId, preferredLanguage = '
 
   if (isFullscreen) {
     return (
-      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: 'var(--app-bg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
         {children}
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--app-bg)' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
       <Sidebar role={role} userName={userName} userId={userId} />
 
-      <main className="app-main relative flex-1 overflow-y-auto pt-20 px-4 pb-8 md:p-8 lg:p-12"
-        style={{ background: 'var(--app-bg)' }}>
-        <div
-          className="pointer-events-none absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full opacity-30"
-          style={{ background: 'radial-gradient(closest-side, rgba(59,130,246,0.18), transparent)', filter: 'blur(60px)' }}
-        />
-        <div
-          className="pointer-events-none absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,0.18), transparent)', filter: 'blur(80px)' }}
-        />
-
-        <div key={pathname} className="relative max-w-7xl mx-auto fade-in-up">
+      <main
+        className="stage app-main"
+        style={{
+          position: 'relative', flex: '1 1 0', overflowY: 'auto',
+          padding: 'clamp(1rem, 3vw, 3rem)',
+        }}
+      >
+        <div key={pathname} className="fade-in mx-auto" style={{ maxWidth: '80rem', position: 'relative' }}>
           {children}
         </div>
       </main>

@@ -423,15 +423,16 @@ export default function AnalyticsClient({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-8">
         {STATS.map(s => (
           <div
             key={s.label}
-            className="c-card rounded-2xl p-5 transition-all duration-300"
+            className="c-card rounded-2xl transition-all duration-300"
+            style={{ padding: '0.85rem 1rem' }}
           >
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
             <p
-              className="text-3xl font-extrabold tracking-tight"
+              className="text-2xl font-extrabold tracking-tight"
               style={{
                 background: `linear-gradient(135deg, ${s.from}, ${s.to})`,
                 WebkitBackgroundClip: 'text',
@@ -450,14 +451,14 @@ export default function AnalyticsClient({
       <div className="c-card rounded-2xl p-7 mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="font-extrabold text-white text-lg tracking-tight">Problems Tried</h2>
+            <h2 className="font-extrabold text-lg tracking-tight" style={{ color: 'var(--text-1)' }}>Problems Tried</h2>
             <p className="text-xs text-slate-500 mt-0.5">{monthName}</p>
           </div>
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Daily activity</span>
         </div>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1.5">
+        {/* Calendar grid — 7 columns, one per weekday */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '0.375rem' }}>
           {/* Week day headers */}
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(label => (
             <div key={label} className="text-center py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -547,11 +548,11 @@ export default function AnalyticsClient({
           <div className="relative mb-8">
             <div className="pointer-events-none select-none" style={{ filter: 'blur(6px)', opacity: 0.4 }}>
               {/* Blurred preview (no todo widget for free) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-8">
                 {STATS.map(s => (
-                  <div key={s.label} className="c-card rounded-2xl p-5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
-                    <p className="text-3xl font-extrabold tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  <div key={s.label} className="c-card rounded-2xl" style={{ padding: '0.85rem 1rem' }}>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{s.label}</p>
+                    <p className="text-2xl font-extrabold tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                       {s.value}
                     </p>
                   </div>

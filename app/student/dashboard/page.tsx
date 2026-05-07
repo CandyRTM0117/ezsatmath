@@ -82,25 +82,21 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-10">
         {STAT_CONFIG.map(s => {
           const { Icon } = s
           return (
             <div
               key={s.key}
-              className="c-card group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
+              className="c-card group rounded-2xl transition-all duration-300 hover:-translate-y-1"
+              style={{ padding: '0.85rem 1rem' }}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: `linear-gradient(135deg, ${s.from}33, ${s.to}1a)`, border: `1px solid ${s.from}33` }}
-                >
-                  <Icon size={16} strokeWidth={1.75} style={{ color: s.from }} />
-                </div>
+                <Icon size={14} strokeWidth={1.75} style={{ color: s.from, opacity: 0.85 }} />
               </div>
               <p
-                className="text-3xl font-extrabold tracking-tight"
+                className="text-2xl font-extrabold tracking-tight"
                 style={{
                   background: `linear-gradient(135deg, ${s.from}, ${s.to})`,
                   WebkitBackgroundClip: 'text',

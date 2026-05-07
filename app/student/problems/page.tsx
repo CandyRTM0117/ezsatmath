@@ -9,16 +9,21 @@ export default async function ProblemsPage() {
   if (!user) return null
 
   const [
-    { data: problems },
     { data: attempts },
     { data: bookmarkRows },
     { data: profile },
   ] = await Promise.all([
-    supabase.from('problems').select('*, choices(*)').order('order_index', { ascending: true }),
     supabase.from('problem_attempts').select('problem_id, is_correct').eq('user_id', user.id),
     supabase.from('bookmarks').select('problem_id').eq('user_id', user.id),
     supabase.from('users').select('*').eq('id', user.id).single(),
   ])
+
+  const isSubscribed = profile?.is_subscribed ?? false
+
+  const problemsQuery = supabase.from('problems').select('*, choices(*)')
+  const { data: problems } = isSubscribed
+    ? await problemsQuery.order('order_index', { ascending: true })
+    : await problemsQuery.eq('is_free_problem', true).order('order_index', { ascending: true })
 
   const attemptMap = new Map<string, boolean>()
   for (const a of (attempts ?? [])) {
@@ -36,6 +41,7 @@ export default async function ProblemsPage() {
       userId={user.id}
       initialBookmarks={initialBookmarks}
       userData={{ ...user, ...profile }}
+      isSubscribed={isSubscribed}
     />
   )
 }

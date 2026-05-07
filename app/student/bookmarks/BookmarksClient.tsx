@@ -149,8 +149,8 @@ export default function BookmarksClient({
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
-        <div className="relative flex-1">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+        <div className="relative" style={{ flex: 1 }}>
           <Search size={16} strokeWidth={1.75} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
@@ -225,7 +225,7 @@ export default function BookmarksClient({
           >
             <ProblemErrorBoundary>
               <div
-                className="flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
+                className="c-modal flex flex-col overflow-hidden w-full h-full rounded-none md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]"
                 onClick={e => e.stopPropagation()}
                 style={{
                   background: 'var(--app-bg-alt)',
@@ -449,12 +449,12 @@ export default function BookmarksClient({
       )}
 
       {problems.length === 0 ? (
-        <div className="rounded-2xl p-16 text-center" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+        <div className="c-card rounded-2xl p-16 text-center">
           <p className="text-slate-400 text-base mb-2">No bookmarks yet</p>
           <p className="text-slate-500 text-sm">Click the bookmark icon on any problem to save it here.</p>
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+        <div className="c-card rounded-2xl overflow-hidden">
           <div
             className="hidden md:grid items-center px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest select-none"
             style={{

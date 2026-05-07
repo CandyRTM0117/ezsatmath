@@ -111,15 +111,10 @@ export default function UsersClient({ initialUsers }: { initialUsers: User[] }) 
       </div>
 
       {(showAdd || editUser) && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 fade-in" onClick={closeModal}>
+        <div className="c-modal-backdrop fixed inset-0 flex items-center justify-center z-50 p-4 fade-in" onClick={closeModal}>
           <div
-            className="rounded-2xl w-full max-w-md p-7 zoom-in-95"
+            className="c-modal rounded-2xl w-full max-w-md p-7 zoom-in-95"
             onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--app-bg-alt)',
-              border: '1px solid var(--card-border)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.1)',
-            }}
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-extrabold text-white tracking-tight">{editUser ? 'Edit User' : 'Add User'}</h2>

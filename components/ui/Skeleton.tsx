@@ -6,7 +6,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '', style }: SkeletonProps) {
   return (
     <div
-      className={`skeleton rounded-2xl ${className}`}
+      className={`c-skeleton ${className}`}
       style={style}
     />
   )

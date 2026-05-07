@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, Component, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2, Menu } from 'lucide-react'
+import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2, Menu, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
 import type { Problem, Choice } from '@/types'
@@ -39,12 +39,14 @@ export default function ProblemsClient({
   userId,
   initialBookmarks,
   userData,
+  isSubscribed,
 }: {
   problems: ProblemWithChoices[]
   attemptMap: Record<string, boolean>
   userId: string
   initialBookmarks: Set<string>
   userData?: Record<string, unknown>
+  isSubscribed?: boolean
 }) {
   console.log('[User data]', userData)
   const preferredLanguage = (userData?.preferred_language as 'en' | 'mn') ?? 'en'
@@ -95,9 +97,9 @@ export default function ProblemsClient({
     if (!selected || !answer || submitting) return
     setSubmitting(true)
     try {
-      const isCorrect = selected.type === 'mc'
+      const isCorrect = selected.type === 'mc' && (selected.choices?.length ?? 0) > 0
         ? selected.choices?.find(c => c.label === answer)?.is_correct ?? false
-        : answer.trim().toLowerCase() === selected.solution.trim().toLowerCase()
+        : answer.trim().toUpperCase() === selected.solution.trim().toUpperCase()
       await supabase.from('problem_attempts').insert({
         user_id: userId,
         problem_id: selected.id,
@@ -154,16 +156,16 @@ export default function ProblemsClient({
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight" style={{ color: 'var(--text-1)' }}>
           Problems
         </h1>
-        <p className="text-slate-400 mt-2 text-lg">
+        <p className="mt-2 text-lg" style={{ color: 'var(--text-2)' }}>
           {displayed.length} of {problems.length} shown
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
-        <div className="relative flex-1">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+        <div className="relative" style={{ flex: 1 }}>
           <Search size={16} strokeWidth={1.75} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
@@ -171,7 +173,7 @@ export default function ProblemsClient({
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200 focus:outline-none min-h-[44px]"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--input-color)' }}
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-1)' }}
             onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
             onBlur={e => (e.target.style.borderColor = 'var(--input-border)')}
           />
@@ -198,12 +200,11 @@ export default function ProblemsClient({
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-1.5 mb-6 flex-wrap">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={safePage === 1}
-            className="p-2 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--text-2)', cursor: 'pointer', opacity: safePage === 1 ? 0.3 : 1, transition: 'all 0.15s' }}
           >
             <ChevronLeft size={15} strokeWidth={2} />
           </button>
@@ -211,10 +212,9 @@ export default function ProblemsClient({
             <button
               key={n}
               onClick={() => setPage(n)}
-              className="w-8 h-8 rounded-lg text-xs font-bold transition-all"
               style={n === safePage
-                ? { background: '#3B82F6', color: 'white', border: '1px solid #3B82F6' }
-                : { background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
+                ? { width: '2rem', height: '2rem', borderRadius: '6px', border: '1px solid #3B82F6', background: '#3B82F6', color: '#fff', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s' }
+                : { width: '2rem', height: '2rem', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--text-2)', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               {n}
             </button>
@@ -222,12 +222,11 @@ export default function ProblemsClient({
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={safePage === totalPages}
-            className="p-2 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'var(--table-header-bg)', border: '1px solid var(--card-border)', color: 'var(--text-muted)' }}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--text-2)', cursor: 'pointer', opacity: safePage === totalPages ? 0.3 : 1, transition: 'all 0.15s' }}
           >
             <ChevronRight size={15} strokeWidth={2} />
           </button>
-          <span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>Page {safePage} of {totalPages}</span>
+          <span style={{ fontSize: '0.75rem', marginLeft: '4px', color: 'var(--text-3)' }}>Page {safePage} of {totalPages}</span>
         </div>
       )}
 
@@ -242,16 +241,11 @@ export default function ProblemsClient({
             <ProblemErrorBoundary>
               <div
                 className="
-                  flex flex-col overflow-hidden
+                  c-modal flex flex-col overflow-hidden
                   w-full h-full rounded-none
                   md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]
                 "
                 onClick={e => e.stopPropagation()}
-                style={{
-                  background: 'var(--app-bg-alt)',
-                  border: '1px solid var(--card-border)',
-                  boxShadow: '0 40px 80px rgba(0,0,0,0.4)',
-                }}
               >
                 {/* Mobile header — back button */}
                 <div
@@ -380,7 +374,10 @@ export default function ProblemsClient({
                     {/* MC buttons */}
                     {selected.type === 'mc' && !result && (
                       <div className="flex gap-3 flex-wrap mb-4">
-                        {(selected.choices ?? []).sort((a, b) => a.order_index - b.order_index).map(c => {
+                        {((selected.choices ?? []).length > 0
+                          ? (selected.choices ?? []).sort((a, b) => a.order_index - b.order_index)
+                          : ['A', 'B', 'C', 'D'].map((lbl, i) => ({ id: lbl, label: lbl, order_index: i, is_correct: false }))
+                        ).map(c => {
                           const isSelected = answer === c.label
                           return (
                             <button
@@ -389,7 +386,7 @@ export default function ProblemsClient({
                               className="w-14 h-14 rounded-xl border-2 font-mono font-bold text-lg transition-all"
                               style={isSelected
                                 ? { borderColor: '#3B82F6', color: '#3B82F6', background: 'rgba(59,130,246,0.08)' }
-                                : { borderColor: 'var(--card-border)', color: 'var(--text-muted)', background: 'var(--input-bg)' }}
+                                : { borderColor: 'var(--glass-border)', color: 'var(--text-1)', background: 'var(--surface)' }}
                             >
                               {c.label}
                             </button>
@@ -408,7 +405,7 @@ export default function ProblemsClient({
                           onKeyDown={e => e.key === 'Enter' && submit()}
                           placeholder="Enter your answer"
                           className="w-full px-4 py-3 rounded-xl font-mono text-base outline-none"
-                          style={{ background: 'var(--input-bg)', border: '2px solid #3B82F6', color: 'var(--text-primary)' }}
+                          style={{ background: 'var(--surface)', border: '2px solid #3B82F6', color: 'var(--text-1)' }}
                         />
                         <p className="text-xs text-slate-500 mt-1.5">fraction · decimal · integer</p>
                       </div>
@@ -430,7 +427,7 @@ export default function ProblemsClient({
                           style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
                         >
                           {result.explanation ? (
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-primary)' }}>{result.explanation}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-1)' }}>{result.explanation}</p>
                           ) : (
                             <div className="h-16 rounded-lg flex items-center justify-center text-sm"
                               style={{ border: '2px dashed var(--card-border)', color: 'var(--text-muted)' }}>
@@ -466,7 +463,7 @@ export default function ProblemsClient({
                       <button
                         onClick={() => { setResult(null); setAnswer('') }}
                         className="w-full py-4 rounded-full font-semibold text-sm transition-colors"
-                        style={{ border: '1px solid var(--input-border)', color: 'var(--text-muted)' }}
+                        style={{ border: '1px solid var(--glass-border)', color: 'var(--text-2)' }}
                       >
                         Try Again
                       </button>
@@ -497,7 +494,7 @@ export default function ProblemsClient({
       )}
 
       {/* Problem list */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
+      <div className="c-card rounded-2xl overflow-hidden">
         {/* Column headers */}
         <div
           className="hidden md:grid items-center px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest select-none"
@@ -586,6 +583,54 @@ export default function ProblemsClient({
           </div>
         )}
       </div>
+
+      {/* Free tier unlock banner */}
+      {!isSubscribed && (
+        <div
+          style={{
+            marginTop: '1.5rem',
+            borderRadius: '1rem',
+            padding: '1.5rem 2rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(29,78,216,0.06))',
+            border: '1px solid rgba(59,130,246,0.3)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px', background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Lock size={15} strokeWidth={2} style={{ color: '#93C5FD' }} />
+            </div>
+            <div>
+              <p style={{ color: '#E2E8F0', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.15rem' }}>
+                You're viewing the 40 free problems
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                Upgrade to Pro to unlock all problems and full analytics.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/student/subscription"
+            style={{
+              flexShrink: 0,
+              padding: '0.625rem 1.25rem',
+              borderRadius: '9999px',
+              background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.825rem',
+              boxShadow: '0 4px 16px rgba(59,130,246,0.35)',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Unlock more with Pro
+          </a>
+        </div>
+      )}
 
       {/* Bottom pagination */}
       {totalPages > 1 && (
