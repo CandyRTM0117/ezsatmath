@@ -833,6 +833,16 @@ a:hover { color: var(--accent-pearl); text-shadow: var(--glow-cyan); }
   background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(232,236,247,0.95));
 }
 
+.c-modal {
+  background: var(--bg-1);
+  color: var(--text-1);
+}
+
+:root.light .c-modal,
+:root[data-theme="light"] .c-modal {
+  background: var(--bg-0);
+}
+
 .c-modal-backdrop {
   background: rgba(7,10,24,0.55);
   -webkit-backdrop-filter: blur(8px);

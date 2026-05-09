@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo, Component, type ReactNode } from 'react'
+import { useState, useRef, useMemo, useEffect, Component, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, X, Check, CircleX, CheckCircle2, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Loader2, Menu, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -33,6 +33,19 @@ class ProblemErrorBoundary extends Component<{ children: ReactNode }, { hasError
   }
 }
 
+// Hook to detect desktop vs mobile (for inline-style layout)
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return isDesktop
+}
+
 export default function ProblemsClient({
   problems,
   attemptMap: initialAttemptMap,
@@ -48,9 +61,7 @@ export default function ProblemsClient({
   userData?: Record<string, unknown>
   isSubscribed?: boolean
 }) {
-  console.log('[User data]', userData)
   const preferredLanguage = (userData?.preferred_language as 'en' | 'mn') ?? 'en'
-  console.log('[Preferred language]', preferredLanguage)
   const [attemptMap, setAttemptMap] = useState(initialAttemptMap)
   const [bookmarks, setBookmarks] = useState<Set<string>>(initialBookmarks)
   const [bookmarkLoading, setBookmarkLoading] = useState<Set<string>>(new Set())
@@ -66,6 +77,8 @@ export default function ProblemsClient({
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
 
+  const isDesktop = useIsDesktop()
+
   // Derive categories from actual data so the filter always matches DB values exactly
   const availableCategories = useMemo(() => {
     const cats = new Set<string>()
@@ -76,7 +89,6 @@ export default function ProblemsClient({
   const supabase = useRef(createClient()).current
 
   function openProblem(p: ProblemWithChoices) {
-    console.log('[Problem clicked]', p, '| preferred language:', preferredLanguage)
     setSelected(p)
     setAnswer('')
     setResult(null)
@@ -230,76 +242,69 @@ export default function ProblemsClient({
         </div>
       )}
 
-      {/* Problem modal */}
+      {/* Problem modal — uses inline styles instead of Tailwind responsive classes for layout reliability */}
       {selected && createPortal(
         <>
-          {/* Backdrop — no padding on mobile (full screen), padded on desktop */}
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center md:bg-black/80 md:backdrop-blur-sm md:p-6"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.8)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              padding: isDesktop ? '1.5rem' : 0,
+            }}
             onClick={closeProblem}
           >
             <ProblemErrorBoundary>
               <div
-                className="
-                  c-modal flex flex-col overflow-hidden
-                  w-full h-full rounded-none
-                  md:rounded-2xl md:w-[92vw] md:max-w-[1200px] md:h-[88vh]
-                "
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  width: isDesktop ? 'min(92vw, 1200px)' : '100%',
+                  height: isDesktop ? '88vh' : '100%',
+                  borderRadius: isDesktop ? '1rem' : 0,
+                  background: 'var(--app-bg, #0a0f1f)',
+                  border: '1px solid var(--card-border, #1e293b)',
+                }}
                 onClick={e => e.stopPropagation()}
               >
-                {/* Mobile header — back button */}
-                <div
-                  className="flex md:hidden items-center gap-3 px-4 py-3 flex-shrink-0"
-                  style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--app-bg-alt)' }}
-                >
-                  <button
-                    onClick={closeProblem}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+                {/* Mobile header */}
+                {!isDesktop && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      flexShrink: 0,
+                      borderBottom: '1px solid var(--card-border, #1e293b)',
+                      background: 'var(--app-bg-alt, #0f172a)',
+                    }}
                   >
-                    <ChevronLeft size={20} />
-                    Back
-                  </button>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold capitalize ml-1" style={diffStyle(selected.difficulty)}>
-                    {selected.difficulty}
-                  </span>
-                  <span className="text-xs text-slate-400 truncate flex-1 min-w-0">
-                    {[selected.category, selected.topic].filter(Boolean).join(' · ')}
-                  </span>
-                  <button
-                    onClick={e => toggleBookmark(e, selected.id)}
-                    disabled={bookmarkLoading.has(selected.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-yellow-400 transition-colors disabled:opacity-50 shrink-0"
-                  >
-                    {bookmarkLoading.has(selected.id)
-                      ? <Loader2 size={16} className="animate-spin" />
-                      : bookmarks.has(selected.id)
-                        ? <BookmarkCheck size={16} className="text-yellow-400" />
-                        : <Bookmark size={16} />}
-                  </button>
-                </div>
-
-                {/* Desktop header */}
-                <div
-                  className="hidden md:flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
-                  style={{ borderBottom: '1px solid var(--card-border)' }}
-                >
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize shrink-0" style={diffStyle(selected.difficulty)}>
-                    {selected.difficulty}
-                  </span>
-                  <span className="font-bold text-white text-sm truncate">
-                    {selected.title ?? `P${selected.order_index}`}
-                  </span>
-                  {selected.category && (
-                    <span className="text-xs text-slate-400 shrink-0">{selected.category}</span>
-                  )}
-                  {selected.topic && (
-                    <span className="text-xs text-slate-500 truncate">{selected.topic}</span>
-                  )}
-                  <div className="flex items-center gap-1 ml-auto shrink-0">
+                    <button
+                      onClick={closeProblem}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+                    >
+                      <ChevronLeft size={20} />
+                      Back
+                    </button>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold capitalize ml-1" style={diffStyle(selected.difficulty)}>
+                      {selected.difficulty}
+                    </span>
+                    <span className="text-xs text-slate-400 truncate flex-1 min-w-0">
+                      {[selected.category, selected.topic].filter(Boolean).join(' · ')}
+                    </span>
                     <button
                       onClick={e => toggleBookmark(e, selected.id)}
                       disabled={bookmarkLoading.has(selected.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-yellow-400 hover:bg-white/5 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-yellow-400 transition-colors disabled:opacity-50 shrink-0"
                     >
                       {bookmarkLoading.has(selected.id)
                         ? <Loader2 size={16} className="animate-spin" />
@@ -307,86 +312,208 @@ export default function ProblemsClient({
                           ? <BookmarkCheck size={16} className="text-yellow-400" />
                           : <Bookmark size={16} />}
                     </button>
-                    <button onClick={closeProblem} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
-                      <X size={16} />
-                    </button>
                   </div>
-                </div>
+                )}
 
-                {/* Body — vertical on mobile, horizontal on desktop */}
-                <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0 relative">
+                {/* Desktop header */}
+                {isDesktop && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.625rem 1rem',
+                      flexShrink: 0,
+                      borderBottom: '1px solid var(--card-border, #1e293b)',
+                    }}
+                  >
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize shrink-0" style={diffStyle(selected.difficulty)}>
+                      {selected.difficulty}
+                    </span>
+                    <span className="font-bold text-white text-sm truncate">
+                      {selected.title ?? `P${selected.order_index}`}
+                    </span>
+                    {selected.category && (
+                      <span className="text-xs text-slate-400 shrink-0">{selected.category}</span>
+                    )}
+                    {selected.topic && (
+                      <span className="text-xs text-slate-500 truncate">{selected.topic}</span>
+                    )}
+                    <div className="flex items-center gap-1 ml-auto shrink-0">
+                      <button
+                        onClick={e => toggleBookmark(e, selected.id)}
+                        disabled={bookmarkLoading.has(selected.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-yellow-400 hover:bg-white/5 transition-colors disabled:opacity-50"
+                      >
+                        {bookmarkLoading.has(selected.id)
+                          ? <Loader2 size={16} className="animate-spin" />
+                          : bookmarks.has(selected.id)
+                            ? <BookmarkCheck size={16} className="text-yellow-400" />
+                            : <Bookmark size={16} />}
+                      </button>
+                      <button onClick={closeProblem} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
+                {/* Body — explicit inline flex direction based on isDesktop */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: isDesktop ? 'row' : 'column',
+                    flex: '1 1 auto',
+                    overflow: 'hidden',
+                    minHeight: 0,
+                    position: 'relative',
+                  }}
+                >
                   {/* Loading overlay */}
                   {imgLoading && (
                     <div
-                      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
-                      style={{ background: 'var(--app-bg-alt)' }}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 10,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1rem',
+                        background: 'var(--app-bg-alt, #0f172a)',
+                      }}
                     >
                       <div className="w-64 flex flex-col gap-3">
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '100%' }} />
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '80%' }} />
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '90%' }} />
-                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border)', width: '70%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border, #1e293b)', width: '100%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border, #1e293b)', width: '80%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border, #1e293b)', width: '90%' }} />
+                        <div className="h-3 rounded-full animate-pulse" style={{ background: 'var(--card-border, #1e293b)', width: '70%' }} />
                       </div>
                       <Loader2 size={20} className="animate-spin text-slate-600 mt-2" />
                     </div>
                   )}
 
-                  {/* Left — Mobile: 52% height. Desktop: 62% width */}
+                  {/* LEFT PANEL — problem */}
                   <div
-                    className="h-[52%] overflow-y-auto md:h-full md:w-[62%] md:flex-none border-b border-white/[0.08] md:border-b-0 md:border-r md:border-white/[0.08]"
+                    style={{
+                      width: isDesktop ? '62%' : '100%',
+                      height: isDesktop ? '100%' : '52%',
+                      flexShrink: 0,
+                      flexGrow: 0,
+                      overflowY: 'auto',
+                      borderRight: isDesktop ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                      borderBottom: isDesktop ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                      minWidth: 0,
+                      minHeight: 0,
+                    }}
                   >
                     {selected.image_url && !imgError ? (
-                      <div className="h-full flex flex-col">
+                      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <img
                           key={selected.id}
                           src={selected.image_url}
                           alt="Problem"
-                          className="flex-1 w-full object-contain cursor-zoom-in min-h-0"
+                          style={{
+                            flex: '1 1 auto',
+                            width: '100%',
+                            objectFit: 'contain',
+                            cursor: 'zoom-in',
+                            minHeight: 0,
+                          }}
                           onClick={() => setLightbox(true)}
                           onLoad={() => setImgLoading(false)}
                           onError={() => { setImgError(true); setImgLoading(false) }}
                         />
                         {!imgLoading && (
-                          <p className="text-center text-xs text-slate-600 py-1.5 flex-shrink-0">click to expand</p>
+                          <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#475569', padding: '0.375rem 0', flexShrink: 0 }}>
+                            click to expand
+                          </p>
                         )}
                       </div>
                     ) : selected.question ? (
-                      <p className="p-6 whitespace-pre-wrap text-sm text-slate-300 leading-relaxed">{selected.question}</p>
+                      <p style={{ padding: '1.5rem', whiteSpace: 'pre-wrap', fontSize: '0.875rem', color: '#cbd5e1', lineHeight: 1.625 }}>
+                        {selected.question}
+                      </p>
                     ) : (
                       <div
-                        className="m-6 rounded-xl flex items-center justify-center text-slate-600 text-sm"
-                        style={{ minHeight: 180, border: '2px dashed var(--card-border)' }}
+                        style={{
+                          margin: '1.5rem',
+                          borderRadius: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#475569',
+                          fontSize: '0.875rem',
+                          minHeight: 180,
+                          border: '2px dashed var(--card-border, #1e293b)',
+                        }}
                       >
                         problem image
                       </div>
                     )}
                   </div>
 
-                  {/* Right — Mobile: remaining height. Desktop: 38% width */}
+                  {/* RIGHT PANEL — answer */}
                   <div
-                    className="flex-1 min-h-0 overflow-y-auto md:flex-none md:h-full md:w-[38%] p-5 md:p-6 flex flex-col"
+                    style={{
+                      width: isDesktop ? '38%' : '100%',
+                      height: isDesktop ? '100%' : 'auto',
+                      flex: isDesktop ? '0 0 38%' : '1 1 auto',
+                      padding: isDesktop ? '1.5rem' : '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      overflowY: 'auto',
+                      background: 'var(--app-bg-alt, #0f172a)',
+                      minWidth: 0,
+                      minHeight: 0,
+                    }}
                   >
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
+                    <p
+                      style={{
+                        fontSize: '0.625rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginBottom: '1rem',
+                        color: 'var(--text-3, #94a3b8)',
+                      }}
+                    >
                       Your Answer
                     </p>
 
                     {/* MC buttons */}
-                    {selected.type === 'mc' && !result && (
-                      <div className="flex gap-3 flex-wrap mb-4">
+                    {!result && selected.type === 'mc' && (
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                         {((selected.choices ?? []).length > 0
-                          ? (selected.choices ?? []).sort((a, b) => a.order_index - b.order_index)
-                          : ['A', 'B', 'C', 'D'].map((lbl, i) => ({ id: lbl, label: lbl, order_index: i, is_correct: false }))
+                          ? [...(selected.choices ?? [])].sort((a, b) => a.order_index - b.order_index)
+                          : (['A', 'B', 'C', 'D'] as const).map((lbl, i) => ({
+                              id: `fallback-${lbl}`,
+                              label: lbl,
+                              order_index: i,
+                              is_correct: false,
+                              problem_id: selected.id,
+                              text: '',
+                            }))
                         ).map(c => {
                           const isSelected = answer === c.label
                           return (
                             <button
                               key={c.id}
                               onClick={() => setAnswer(c.label)}
-                              className="w-14 h-14 rounded-xl border-2 font-mono font-bold text-lg transition-all"
-                              style={isSelected
-                                ? { borderColor: '#3B82F6', color: '#3B82F6', background: 'rgba(59,130,246,0.08)' }
-                                : { borderColor: 'var(--glass-border)', color: 'var(--text-1)', background: 'var(--surface)' }}
+                              style={{
+                                width: '3.5rem',
+                                height: '3.5rem',
+                                borderRadius: '0.75rem',
+                                fontFamily: 'monospace',
+                                fontWeight: 700,
+                                fontSize: '1.125rem',
+                                transition: 'all 0.2s',
+                                cursor: 'pointer',
+                                ...(isSelected
+                                  ? { color: '#3B82F6', background: 'rgba(59,130,246,0.08)', border: '2px solid #3B82F6' }
+                                  : { color: 'var(--text-1, #f1f5f9)', background: 'var(--surface, #1e293b)', border: '2px solid var(--glass-border, #334155)' }),
+                              }}
                             >
                               {c.label}
                             </button>
@@ -396,78 +523,127 @@ export default function ProblemsClient({
                     )}
 
                     {/* Input */}
-                    {selected.type === 'input' && !result && (
-                      <div className="mb-4">
+                    {!result && selected.type === 'input' && (
+                      <div style={{ marginBottom: '1rem' }}>
                         <input
                           type="text"
                           value={answer}
                           onChange={e => setAnswer(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && submit()}
                           placeholder="Enter your answer"
-                          className="w-full px-4 py-3 rounded-xl font-mono text-base outline-none"
-                          style={{ background: 'var(--surface)', border: '2px solid #3B82F6', color: 'var(--text-1)' }}
+                          autoFocus
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '0.75rem',
+                            fontFamily: 'monospace',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            background: 'var(--surface, #1e293b)',
+                            border: '2px solid #3B82F6',
+                            color: 'var(--text-1, #f1f5f9)',
+                            display: 'block',
+                            boxSizing: 'border-box',
+                          }}
                         />
-                        <p className="text-xs text-slate-500 mt-1.5">fraction · decimal · integer</p>
+                        <p style={{ fontSize: '0.75rem', marginTop: '0.375rem', color: 'var(--text-3, #94a3b8)' }}>
+                          fraction · decimal · integer
+                        </p>
                       </div>
                     )}
 
                     {/* Result panel */}
                     {result && (
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-2">
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                           {result.correct
                             ? <CheckCircle2 size={16} className="text-emerald-400" />
                             : <CircleX size={16} className="text-red-400" />}
-                          <span className={`text-sm font-semibold ${result.correct ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: result.correct ? '#34d399' : '#f87171' }}>
                             {result.correct ? 'Correct!' : 'Incorrect'}
                           </span>
                         </div>
                         <div
-                          className="rounded-xl p-4 min-h-24"
-                          style={{ background: 'var(--input-bg)', border: '1px solid var(--card-border)' }}
+                          style={{
+                            borderRadius: '0.75rem',
+                            padding: '1rem',
+                            minHeight: '6rem',
+                            background: 'var(--input-bg, #0f172a)',
+                            border: '1px solid var(--card-border, #1e293b)',
+                          }}
                         >
                           {result.explanation ? (
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-1)' }}>{result.explanation}</p>
+                            <p style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap', lineHeight: 1.625, color: 'var(--text-1, #f1f5f9)' }}>
+                              {result.explanation}
+                            </p>
                           ) : (
-                            <div className="h-16 rounded-lg flex items-center justify-center text-sm"
-                              style={{ border: '2px dashed var(--card-border)', color: 'var(--text-muted)' }}>
+                            <div
+                              style={{
+                                height: '4rem',
+                                borderRadius: '0.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.875rem',
+                                border: '2px dashed var(--card-border, #1e293b)',
+                                color: 'var(--text-muted, #64748b)',
+                              }}
+                            >
                               solution image
                             </div>
                           )}
                         </div>
                         {!result.correct && selected.solution && (
-                          <p className="mt-2 text-sm text-emerald-400">
-                            Correct answer: <span className="font-mono font-semibold">{selected.solution}</span>
+                          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#34d399' }}>
+                            Correct answer: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{selected.solution}</span>
                           </p>
                         )}
                       </div>
                     )}
 
-                    <div className="flex-1" />
-
-                    {/* Submit / Try Again */}
-                    {!result ? (
-                      <button
-                        onClick={submit}
-                        disabled={!answer || submitting}
-                        className="w-full py-4 rounded-full font-semibold text-base transition-all"
-                        style={answer && !submitting
-                          ? { background: '#2563EB', color: '#fff', boxShadow: '0 0 20px rgba(37,99,235,0.4)' }
-                          : { background: 'var(--input-bg)', color: '#475569' }}
-                      >
-                        {submitting
-                          ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Submitting…</span>
-                          : 'Submit Answer'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => { setResult(null); setAnswer('') }}
-                        className="w-full py-4 rounded-full font-semibold text-sm transition-colors"
-                        style={{ border: '1px solid var(--glass-border)', color: 'var(--text-2)' }}
-                      >
-                        Try Again
-                      </button>
-                    )}
+                    {/* Submit / Try Again — pinned to bottom */}
+                    <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+                      {!result ? (
+                        <button
+                          onClick={submit}
+                          disabled={!answer || submitting}
+                          style={{
+                            width: '100%',
+                            padding: '1rem',
+                            borderRadius: '9999px',
+                            fontWeight: 600,
+                            fontSize: '1rem',
+                            transition: 'all 0.2s',
+                            cursor: answer && !submitting ? 'pointer' : 'not-allowed',
+                            ...(answer && !submitting
+                              ? { background: '#2563EB', color: '#fff', boxShadow: '0 0 20px rgba(37,99,235,0.4)', border: 'none' }
+                              : { background: 'rgba(255,255,255,0.08)', color: 'var(--text-3, #94a3b8)', border: '1px solid var(--glass-border, #334155)' }),
+                          }}
+                        >
+                          {submitting
+                            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><Loader2 size={14} className="animate-spin" /> Submitting…</span>
+                            : 'Submit Answer'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => { setResult(null); setAnswer('') }}
+                          style={{
+                            width: '100%',
+                            padding: '1rem',
+                            borderRadius: '9999px',
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            background: 'transparent',
+                            border: '1px solid var(--glass-border, #334155)',
+                            color: 'var(--text-2, #cbd5e1)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          Try Again
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -477,14 +653,22 @@ export default function ProblemsClient({
           {/* Lightbox */}
           {lightbox && (
             <div
-              className="fixed inset-0 z-[60] flex items-center justify-center cursor-zoom-out"
-              style={{ background: 'rgba(0,0,0,0.92)' }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 60,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'zoom-out',
+                background: 'rgba(0,0,0,0.92)',
+              }}
               onClick={() => setLightbox(false)}
             >
               <img
                 src={selected.image_url!}
                 alt="Problem expanded"
-                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '0.5rem' }}
                 onClick={e => e.stopPropagation()}
               />
             </div>

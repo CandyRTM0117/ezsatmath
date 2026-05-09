@@ -220,7 +220,7 @@ export default function BookmarksClient({
       {selected && createPortal(
         <>
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center md:bg-black/80 md:backdrop-blur-sm md:p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm md:p-6"
             onClick={closeProblem}
           >
             <ProblemErrorBoundary>
@@ -333,7 +333,7 @@ export default function BookmarksClient({
                   </div>
 
                   {/* Right */}
-                  <div className="flex-1 min-h-0 overflow-y-auto md:flex-none md:h-full md:w-[38%] p-5 md:p-6 flex flex-col">
+                  <div className="flex-1 min-h-0 overflow-y-auto md:flex-none md:w-[38%] p-5 md:p-6 flex flex-col">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
                       {result ? 'Result' : 'Your Answer'}
                     </p>
@@ -400,16 +400,14 @@ export default function BookmarksClient({
                       </div>
                     )}
 
-                    <div className="flex-1" />
-
                     {!result ? (
                       <button
                         onClick={submit}
                         disabled={!answer || submitting}
-                        className="w-full py-4 rounded-full font-semibold text-base transition-all"
+                        className="w-full py-4 rounded-full font-semibold text-base transition-all mt-auto"
                         style={answer && !submitting
                           ? { background: '#2563EB', color: '#fff', boxShadow: '0 0 20px rgba(37,99,235,0.4)' }
-                          : { background: 'var(--input-bg)', color: '#475569' }}
+                          : { background: 'rgba(255,255,255,0.08)', color: 'var(--text-3)', border: '1px solid var(--glass-border)' }}
                       >
                         {submitting
                           ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Submitting…</span>

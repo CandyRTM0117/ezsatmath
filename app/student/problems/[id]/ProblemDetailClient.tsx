@@ -187,9 +187,17 @@ export default function ProblemDetailClient({ problem, preferredLanguage }: { pr
   const [submitted, setSubmitted]   = useState(false)
   const [expanded, setExpanded]     = useState(false)
 
-  const choices     = problem.choices ?? []
+  const dbChoices   = problem.choices ?? []
+  // Fallback: MC problems with image-embedded choices have empty choices in DB.
+  // Render A/B/C/D buttons so the right panel is never blank.
+  const choices: Array<Pick<Choice, 'id' | 'label' | 'choice_text' | 'is_correct'>> =
+    problem.type === 'mc' && dbChoices.length === 0
+      ? ['A', 'B', 'C', 'D'].map(l => ({ id: l, label: l, choice_text: '', is_correct: false }))
+      : dbChoices
   const shortId     = problem.id.slice(0, 8)
-  const correctLabel = choices.find(c => c.is_correct)?.label ?? null
+  const correctLabel =
+    dbChoices.find(c => c.is_correct)?.label
+    ?? (problem.type === 'mc' ? (problem.solution ?? '').trim().toUpperCase() || null : null)
 
   const canSubmit = problem.type === 'mc' ? selectedMC !== null : inputVal.trim() !== ''
 
@@ -290,30 +298,33 @@ export default function ProblemDetailClient({ problem, preferredLanguage }: { pr
           </div>
 
           {/* Right — answer panel */}
-          <div className="flex flex-col overflow-y-auto" style={{ width: '38%' }}>
+          <div
+            className="flex flex-col overflow-y-auto"
+            style={{ width: '40%', minWidth: 320, background: 'var(--app-bg)' }}
+          >
             <div className="flex-1 p-8 flex flex-col">
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-6">
+              <h2 className="text-lg font-semibold text-slate-100 mb-6">
                 Your Answer
-              </p>
+              </h2>
 
               {problem.type === 'mc' && (
-                <div className="flex gap-3 flex-wrap">
+                <div className="flex flex-col gap-3">
                   {choices.map(c => (
-                    <div key={c.id} className="relative">
-                      <button
-                        disabled={submitted}
-                        onClick={() => setSelectedMC(c.label)}
-                        className="w-14 h-14 rounded-xl border-2 font-mono font-bold text-lg transition-all"
-                        style={mcStyle(c.label, selectedMC, submitted, correctLabel)}
-                      >
-                        {c.label}
-                      </button>
-                      {submitted && c.label === correctLabel && (
-                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                          <Check size={11} strokeWidth={3} color="white" />
-                        </span>
+                    <button
+                      key={c.id}
+                      disabled={submitted}
+                      onClick={() => setSelectedMC(c.label)}
+                      className="relative w-full px-4 py-4 rounded-xl border-2 font-mono font-bold text-base text-left transition-all flex items-center gap-3"
+                      style={mcStyle(c.label, selectedMC, submitted, correctLabel)}
+                    >
+                      <span className="text-lg">{c.label}</span>
+                      {c.choice_text && (
+                        <span className="font-sans font-normal text-sm flex-1">{c.choice_text}</span>
                       )}
-                    </div>
+                      {submitted && c.label === correctLabel && (
+                        <Check size={16} strokeWidth={3} className="ml-auto text-emerald-400" />
+                      )}
+                    </button>
                   ))}
                 </div>
               )}
@@ -386,13 +397,13 @@ lang === 'mn'
               <button
                 onClick={submitted ? undefined : handleSubmit}
                 disabled={!submitted && !canSubmit}
-                className="w-full py-4 rounded-full font-semibold text-base transition-all"
+                className="w-full py-4 rounded-full font-semibold text-base transition-all disabled:cursor-not-allowed"
                 style={
                   submitted
-                    ? { background: isCorrect ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: isCorrect ? '#34D399' : '#F87171' }
+                    ? { background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)', color: isCorrect ? '#34D399' : '#F87171', border: `1px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}` }
                     : canSubmit
-                    ? { background: 'var(--input-textarea-bg)', color: 'var(--text-muted)' }
-                    : { background: 'var(--input-bg)', color: '#475569' }
+                    ? { background: '#3B82F6', color: '#fff' }
+                    : { background: 'var(--input-bg)', color: '#475569', border: '1px solid var(--input-border)' }
                 }
               >
                 {submitted ? (isCorrect ? '✓ Correct!' : 'Incorrect') : 'Submit Answer'}

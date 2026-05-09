@@ -31,7 +31,7 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 stage">
+<div className="min-h-screen flex items-center justify-center px-4">
         <div className="card w-full text-center" style={{ maxWidth: '26rem' }}>
           <div className="text-5xl mb-5" style={{ transform: 'translateZ(40px)' }}>📬</div>
           <h3 className="card-title text-2xl">Check your email</h3>
@@ -55,7 +55,7 @@ export default function SignupPage() {
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 stage">
+  <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full" style={{ maxWidth: '26rem' }}>
         <div className="card">
           <div className="text-center mb-8">
