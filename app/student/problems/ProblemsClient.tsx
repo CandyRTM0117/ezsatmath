@@ -427,7 +427,7 @@ export default function ProblemsClient({
                         />
                         {!imgLoading && (
                           <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#475569', padding: '0.375rem 0', flexShrink: 0 }}>
-                            click to expand
+
                           </p>
                         )}
                       </div>
