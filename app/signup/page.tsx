@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,7 +12,7 @@ export default function SignupPage() {
   const [confirm, setConfirm]   = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
-  const [done, setDone]         = useState(false)
+  const router = useRouter()
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -26,25 +27,7 @@ export default function SignupPage() {
       options: { data: { name }, emailRedirectTo: `${location.origin}/auth/callback` },
     })
     if (authError) { setError(authError.message); setLoading(false); return }
-    setDone(true); setLoading(false)
-  }
-
-  if (done) {
-    return (
-<div className="min-h-screen flex items-center justify-center px-4">
-        <div className="card w-full text-center" style={{ maxWidth: '26rem' }}>
-          <div className="text-5xl mb-5" style={{ transform: 'translateZ(40px)' }}>📬</div>
-          <h3 className="card-title text-2xl">Check your email</h3>
-          <p className="card-body text-sm">
-            We sent a confirmation link to <strong style={{ color: 'var(--text-1)' }}>{email}</strong>. Click it to activate your account.
-          </p>
-          <p className="text-xs text-slate-500 mt-6">
-            Already confirmed?{' '}
-            <Link href="/login" style={{ color: 'var(--accent-cyan)', fontWeight: 500 }}>Log in</Link>
-          </p>
-        </div>
-      </div>
-    )
+    router.replace('/student/dashboard')
   }
 
   const fields = [
