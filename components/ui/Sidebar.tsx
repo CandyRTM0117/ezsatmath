@@ -34,9 +34,10 @@ const studentNav: NavItem[] = [
   { href: '/student/subscription', label: 'Subscription', Icon: CreditCard },
 ]
 const teacherNav: NavItem[] = [
-  { href: '/teacher/problems', label: 'Problems', Icon: FileText },
-  { href: '/teacher/messages', label: 'Messages', Icon: MessageSquare },
-  { href: '/teacher/account',  label: 'Account',  Icon: UserCircle },
+  { href: '/teacher/problems',  label: 'Problems', Icon: FileText },
+  { href: '/teacher/students',  label: 'Students', Icon: Users },
+  { href: '/teacher/messages',  label: 'Messages', Icon: MessageSquare },
+  { href: '/teacher/account',   label: 'Account',  Icon: UserCircle },
 ]
 
 function getNav(role: SidebarProps['role']) {

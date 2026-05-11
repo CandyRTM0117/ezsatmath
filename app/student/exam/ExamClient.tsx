@@ -149,10 +149,17 @@ export default function ExamClient({
   const [mounted, setMounted] = useState(false)
   const [examImageExpanded, setExamImageExpanded] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const submitted = useRef(false)
   const supabase = createClient()
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    function check() { setIsMobile(window.innerWidth < 768) }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
   useEffect(() => {
     setExamImageExpanded(false)
     setImageLoaded(false)
@@ -1066,18 +1073,15 @@ export default function ExamClient({
       </div>
 
       {/* ── Problem area ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row' }}>
         {problem ? (
           <>
             {/* Left: question image or text */}
             <div
-              style={{
-                width: '60%',
-                borderRight: '1px solid var(--card-border)',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-              }}
+              style={isMobile
+                ? { height: '50%', borderBottom: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+                : { width: '60%', borderRight: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+              }
             >
               {problem.image_url ? (
                 <>
@@ -1114,12 +1118,10 @@ export default function ExamClient({
 
             {/* Right: answer + Next/Submit */}
             <div
-              style={{
-                width: '40%',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '36px 40px',
-              }}
+              style={isMobile
+                ? { flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 24px', overflowY: 'auto' }
+                : { width: '40%', display: 'flex', flexDirection: 'column', padding: '36px 40px' }
+              }
             >
               <p
                 style={{
