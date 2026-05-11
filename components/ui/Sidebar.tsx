@@ -19,10 +19,11 @@ interface SidebarProps {
 }
 
 const adminNav: NavItem[] = [
-  { href: '/admin/users',    label: 'Users',        Icon: Users },
-  { href: '/admin/problems', label: 'Problems',     Icon: FileText },
-  { href: '/admin/exams',    label: 'Exam Tracker', Icon: ListChecks },
-  { href: '/admin/messages', label: 'Messages',     Icon: MessageSquare },
+  { href: '/admin/users',      label: 'Users',        Icon: Users },
+  { href: '/admin/problems',   label: 'Problems',     Icon: FileText },
+  { href: '/admin/exams',      label: 'Exam Tracker', Icon: ListChecks },
+  { href: '/admin/messages',   label: 'Messages',     Icon: MessageSquare },
+  { href: '/admin/analytics',  label: 'Analytics',    Icon: LineChart },
 ]
 const studentNav: NavItem[] = [
   { href: '/student/dashboard',    label: 'Dashboard',    Icon: LayoutDashboard },
