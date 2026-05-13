@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import ProblemsClient from './ProblemsClient'
+import type { Problem, Choice } from '@/types'
+
+type ProblemWithChoices = Problem & { choices?: Choice[] }
 
 export default async function ProblemsPage() {
   const supabase = await createClient()
@@ -20,10 +23,25 @@ export default async function ProblemsPage() {
 
   const isSubscribed = profile?.is_subscribed ?? false
 
-  const problemsQuery = supabase.from('problems').select('*, choices(*)')
-  const { data: problems } = isSubscribed
-    ? await problemsQuery.order('order_index', { ascending: true })
-    : await problemsQuery.eq('is_free_problem', true).order('order_index', { ascending: true })
+  const PAGE = 1000
+  let from = 0
+  const allProblems: ProblemWithChoices[] = []
+  while (true) {
+    const baseQuery = supabase
+      .from('problems')
+      .select('*, choices(*)')
+      .eq('status', 'approved')
+      .order('order_index', { ascending: true })
+      .range(from, from + PAGE - 1)
+    const { data } = isSubscribed
+      ? await baseQuery
+      : await baseQuery.eq('is_free_problem', true)
+    if (!data?.length) break
+    allProblems.push(...data)
+    if (data.length < PAGE) break
+    from += PAGE
+  }
+  const problems = allProblems
 
   const attemptMap = new Map<string, boolean>()
   for (const a of (attempts ?? [])) {

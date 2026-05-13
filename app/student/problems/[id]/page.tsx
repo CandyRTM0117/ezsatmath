@@ -11,7 +11,7 @@ export default async function ProblemDetailPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: problem }, { data: profile }] = await Promise.all([
-    supabase.from('problems').select('*, choices(*)').eq('id', id).single(),
+    supabase.from('problems').select('*, choices(*)').eq('id', id).eq('status', 'approved').single(),
     user ? supabase.from('users').select('preferred_language').eq('id', user.id).single() : Promise.resolve({ data: null }),
   ])
 

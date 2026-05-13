@@ -17,9 +17,9 @@ export default async function ExamPage() {
     { data: examHistory },
   ] = await Promise.all([
     supabase.from('users').select('is_subscribed').eq('id', user.id).single(),
-    supabase.from('problems').select('*, choices(*)').eq('difficulty', 'easy'),
-    supabase.from('problems').select('*, choices(*)').eq('difficulty', 'medium'),
-    supabase.from('problems').select('*, choices(*)').eq('difficulty', 'hard'),
+    supabase.from('problems').select('*, choices(*)').eq('difficulty', 'easy').eq('status', 'approved'),
+    supabase.from('problems').select('*, choices(*)').eq('difficulty', 'medium').eq('status', 'approved'),
+    supabase.from('problems').select('*, choices(*)').eq('difficulty', 'hard').eq('status', 'approved'),
     // Count Part 1 exams = number of completed exam sessions
     supabase.from('exams').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('part', 1),
     supabase.from('exams').select('id, part, score, total, taken_at').eq('user_id', user.id).order('taken_at', { ascending: false }).limit(20),
