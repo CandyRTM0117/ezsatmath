@@ -88,6 +88,9 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
   const [loading, setLoading] = useState(false)
   const [filterDiff, setFilterDiff] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [imageUrlDraft, setImageUrlDraft] = useState('')
+  const [imageUrlSaving, setImageUrlSaving] = useState(false)
+  const [imageUrlSaved, setImageUrlSaved] = useState(false)
 
   async function reload() {
     setProblems(await fetchAllProblems())
@@ -103,6 +106,8 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
 
   async function openEdit(p: Problem) {
     setFormError('')
+    setImageUrlDraft(p.image_url ?? '')
+    setImageUrlSaved(false)
     // show modal immediately with the problem data, then load choices
     setEditProblem(p)
     setForm({
@@ -218,6 +223,23 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     await reload()
     closeForm()
     setLoading(false)
+  }
+
+  async function handleSaveImageUrl() {
+    if (!editProblem) return
+    setImageUrlSaving(true)
+    const { error } = await supabase
+      .from('problems')
+      .update({ image_url: imageUrlDraft || null })
+      .eq('id', editProblem.id)
+    if (!error) {
+      const updated = { ...editProblem, image_url: imageUrlDraft || null }
+      setEditProblem(updated)
+      setProblems(prev => prev.map(p => p.id === editProblem.id ? { ...p, image_url: imageUrlDraft || null } : p))
+      setImageUrlSaved(true)
+      setTimeout(() => setImageUrlSaved(false), 2000)
+    }
+    setImageUrlSaving(false)
   }
 
   async function handleDelete(p: Problem) {
@@ -369,15 +391,50 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
               {/* Left: image preview (only when editing a problem with images) */}
               {hasImage && (
                 <div className="p-5 space-y-3 overflow-y-auto max-h-[80vh]" style={{ borderRight: '1px solid var(--input-border)' }}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Problem Image</p>
-                  {editProblem.image_url ? (
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Problem Image</p>
+                    {imageUrlDraft !== (editProblem.image_url ?? '') && (
+                      <span className="text-[10px] text-amber-400 font-semibold">Unsaved</span>
+                    )}
+                  </div>
+
+                  {/* URL input + save */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      value={imageUrlDraft}
+                      onChange={e => { setImageUrlDraft(e.target.value); setImageUrlSaved(false) }}
+                      placeholder="Paste R2 image URL…"
+                      className="flex-1 px-3 py-2 rounded-lg text-xs focus:outline-none transition-all font-mono"
+                      style={inputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveImageUrl}
+                      disabled={imageUrlSaving || imageUrlDraft === (editProblem.image_url ?? '')}
+                      className="px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1.5 flex-shrink-0 disabled:opacity-40"
+                      style={imageUrlSaved
+                        ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)' }
+                        : { background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#fff', border: 'none' }}
+                    >
+                      {imageUrlSaving
+                        ? <Loader2 size={11} className="animate-spin" />
+                        : imageUrlSaved
+                          ? <><CheckCircle size={11} /> Saved</>
+                          : 'Save'}
+                    </button>
+                  </div>
+
+                  {/* Live preview */}
+                  {imageUrlDraft ? (
                     <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--input-border)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={editProblem.image_url}
+                        src={imageUrlDraft}
                         alt="Problem"
                         className="w-full h-auto block"
                         style={{ background: '#fff' }}
+                        onError={e => { (e.target as HTMLImageElement).style.opacity = '0.3' }}
+                        onLoad={e => { (e.target as HTMLImageElement).style.opacity = '1' }}
                       />
                     </div>
                   ) : (
