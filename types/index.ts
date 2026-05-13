@@ -14,8 +14,11 @@ export interface User {
 
 export type ProblemCategory = 'Algebra' | 'Trigonometry' | 'Data Analytics' | 'Advanced Math'
 
+export type ProblemStatus = 'approved' | 'needs_review' | 'error'
+
 export interface Problem {
   id: string
+  source_id: string | null
   pdf_id: string | null
   title: string | null
   question: string
@@ -31,6 +34,8 @@ export interface Problem {
   choices_image_url: string | null
   drawings_json: Record<string, unknown> | null
   source: string | null
+  status: ProblemStatus | null
+  validation_flags: Record<string, unknown> | null
   claude_model: string | null
   created_at: string
   choices?: Choice[]
