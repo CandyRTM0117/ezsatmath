@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, X, Loader2, AlertTriangle, CheckCircle, XCircle, Clock, ImageOff } from 'lucide-react'
+import { Plus, X, Loader2, AlertTriangle, CheckCircle, XCircle, Clock, ImageOff, Copy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Dropdown from '@/components/ui/Dropdown'
 import type { Problem, Choice, ProblemCategory, ProblemStatus } from '@/types'
@@ -249,20 +249,45 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
     await reload()
   }
 
+  // duplicate detection — same title OR same image_url
+  const duplicateIds = useMemo(() => {
+    const seen = new Map<string, string[]>()
+    for (const p of problems) {
+      if (p.title) {
+        if (!seen.has(p.title)) seen.set(p.title, [])
+        seen.get(p.title)!.push(p.id)
+      }
+    }
+    const seenImg = new Map<string, string[]>()
+    for (const p of problems) {
+      if (p.image_url) {
+        if (!seenImg.has(p.image_url)) seenImg.set(p.image_url, [])
+        seenImg.get(p.image_url)!.push(p.id)
+      }
+    }
+    const ids = new Set<string>()
+    for (const [, group] of seen) if (group.length > 1) group.forEach(id => ids.add(id))
+    for (const [, group] of seenImg) if (group.length > 1) group.forEach(id => ids.add(id))
+    return ids
+  }, [problems])
+
   // counts — uses loose null check to catch both null AND undefined from Supabase
   const counts = {
     all:          problems.length,
     approved:     problems.filter(p => p.status === 'approved').length,
     needs_review: problems.filter(p => p.status === 'needs_review' || hasNoStatus(p.status)).length,
     error:        problems.filter(p => p.status === 'error').length,
+    duplicates:   duplicateIds.size,
   }
 
   const afterDiff = filterDiff === 'all' ? problems : problems.filter(p => p.difficulty === filterDiff)
   const displayed = filterStatus === 'all'
     ? afterDiff
-    : filterStatus === 'needs_review'
-      ? afterDiff.filter(p => p.status === 'needs_review' || hasNoStatus(p.status))
-      : afterDiff.filter(p => p.status === filterStatus)
+    : filterStatus === 'duplicates'
+      ? afterDiff.filter(p => duplicateIds.has(p.id))
+      : filterStatus === 'needs_review'
+        ? afterDiff.filter(p => p.status === 'needs_review' || hasNoStatus(p.status))
+        : afterDiff.filter(p => p.status === filterStatus)
 
   const inputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.target.style.borderColor = 'rgba(59,130,246,0.5)'
@@ -333,6 +358,28 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
             </button>
           )
         })}
+
+        {/* Duplicates tab */}
+        {counts.duplicates > 0 && (
+          <button
+            onClick={() => setFilterStatus('duplicates')}
+            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all duration-150"
+            style={filterStatus === 'duplicates'
+              ? { background: 'rgba(168,85,247,0.15)', color: '#C084FC', border: '1.5px solid rgba(168,85,247,0.4)', boxShadow: '0 0 0 3px rgba(168,85,247,0.08)' }
+              : { background: 'var(--input-bg)', color: 'var(--text-muted)', border: '1.5px solid var(--input-border)' }}
+          >
+            <Copy size={11} strokeWidth={2.5} />
+            Duplicates
+            <span
+              className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-extrabold"
+              style={filterStatus === 'duplicates'
+                ? { background: 'rgba(168,85,247,0.2)', color: '#C084FC' }
+                : { background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}
+            >
+              {counts.duplicates}
+            </span>
+          </button>
+        )}
 
         <div className="ml-auto">
           <Dropdown
@@ -691,8 +738,10 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
           <tbody>
             {displayed.map(p => {
               const statusCfg = STATUS_CONFIG[p.status as ProblemStatus]
+              const isDuplicate = duplicateIds.has(p.id)
               return (
-                <tr key={p.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.02]">
+                <tr key={p.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.02]"
+                  style={isDuplicate ? { background: 'rgba(168,85,247,0.04)' } : undefined}>
                   <td className="px-5 py-4 max-w-sm">
                     <div className="flex items-center gap-2">
                       {p.image_url && (
@@ -702,7 +751,14 @@ export default function ProblemsClient({ initialProblems }: { initialProblems: P
                         </div>
                       )}
                       <div className="min-w-0">
-                        {p.title && <p className="font-semibold text-white text-xs mb-0.5">{p.title}</p>}
+                        {p.title && (
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <p className="font-semibold text-white text-xs">{p.title}</p>
+                            {isDuplicate && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: 'rgba(168,85,247,0.2)', color: '#C084FC', border: '1px solid rgba(168,85,247,0.3)' }}>DUP</span>
+                            )}
+                          </div>
+                        )}
                         <p className="text-slate-400 truncate">{p.question}</p>
                         {p.validation_flags && Object.keys(p.validation_flags).length > 0 && (
                           <p className="text-[10px] text-amber-400/70 mt-0.5 truncate">
