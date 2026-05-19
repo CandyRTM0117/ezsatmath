@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FileText, ClipboardList, LineChart, CreditCard,
   Users, ListChecks, LogOut, ChevronLeft, Menu, X, Bookmark,
-  MessageSquare, Loader2, UserCircle, type LucideIcon,
+  MessageSquare, Loader2, UserCircle, Star, type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -24,6 +24,7 @@ const adminNav: NavItem[] = [
   { href: '/admin/exams',      label: 'Exam Tracker', Icon: ListChecks },
   { href: '/admin/messages',   label: 'Messages',     Icon: MessageSquare },
   { href: '/admin/analytics',  label: 'Analytics',    Icon: LineChart },
+  { href: '/admin/reviews',    label: 'Reviews',      Icon: Star },
 ]
 const studentNav: NavItem[] = [
   { href: '/student/dashboard',    label: 'Dashboard',    Icon: LayoutDashboard },
@@ -33,6 +34,7 @@ const studentNav: NavItem[] = [
   { href: '/student/bookmarks',    label: 'Bookmarks',    Icon: Bookmark },
   { href: '/student/messages',     label: 'Messages',     Icon: MessageSquare },
   { href: '/student/subscription', label: 'Subscription', Icon: CreditCard },
+  { href: '/student/review',       label: 'Review',       Icon: Star },
 ]
 const teacherNav: NavItem[] = [
   { href: '/teacher/problems',  label: 'Problems', Icon: FileText },
